@@ -1,0 +1,33 @@
+{
+  "name": "oneclickpost-nextjs",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "@prisma/client": "^6.1.0",
+    "axios": "^1.20.0",
+    "lucide-react": "^0.546.0",
+    "next": "^15.1.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "prisma": "^6.1.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.0"
+  }
+}
