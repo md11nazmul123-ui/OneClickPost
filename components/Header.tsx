@@ -28,8 +28,8 @@ export const Header: React.FC = () => {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
 
-  // Hide header on splash and welcome screens for clean native hero look
-  if (screen === 'splash' || screen === 'welcome') {
+  // Hide header on splash, welcome and auth screens for clean native hero look
+  if (screen === 'splash' || screen === 'welcome' || screen === 'login' || screen === 'register') {
     return null;
   }
 

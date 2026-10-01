@@ -8,6 +8,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { AppProvider, useApp } from '../context/AppContext';
+import { AuthProvider } from '../context/AuthContext';
+import { AuthGate } from './AuthGate';
 import { Header } from '../components/Header';
 import { BottomNav } from '../components/BottomNav';
 import { OAuthModal } from '../components/OAuthModal';
@@ -15,6 +17,8 @@ import { OAuthModal } from '../components/OAuthModal';
 // Screens
 import { SplashScreen } from '../screens/SplashScreen';
 import { WelcomeScreen } from '../screens/WelcomeScreen';
+import { LoginScreen } from '../screens/LoginScreen';
+import { RegisterScreen } from '../screens/RegisterScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { CreatePostScreen } from '../screens/CreatePostScreen';
 import { SelectPlatformsScreen } from '../screens/SelectPlatformsScreen';
@@ -77,6 +81,10 @@ const MainRouter: React.FC = () => {
         return <SplashScreen />;
       case 'welcome':
         return <WelcomeScreen />;
+      case 'login':
+        return <LoginScreen />;
+      case 'register':
+        return <RegisterScreen />;
       case 'dashboard':
         return <DashboardScreen />;
       case 'create':
@@ -173,8 +181,11 @@ const MainRouter: React.FC = () => {
 
 export default function ClientApp() {
   return (
-    <AppProvider>
-      <MainRouter />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <AuthGate />
+        <MainRouter />
+      </AppProvider>
+    </AuthProvider>
   );
 }

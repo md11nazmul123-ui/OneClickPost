@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { LanguageCode, ScreenId } from '../types';
 import {
   ArrowLeft,
@@ -33,6 +34,15 @@ export const SettingsScreen: React.FC = () => {
     setDailyBroadcastGoal,
     todayBroadcastsCount,
   } = useApp();
+  const { logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    await logout(); // সার্ভারে Token বাতিল + কুকি মুছে ফেলা; AuthGate Welcome-এ নিয়ে যাবে
+    setLoggingOut(false);
+  };
 
   const isSmooth = theme === 'smooth' || theme === 'light';
   const [showAllLanguages, setShowAllLanguages] = useState(false);
@@ -639,8 +649,9 @@ export const SettingsScreen: React.FC = () => {
         <div className={`pt-2 border-t ${isSmooth ? 'border-slate-200' : 'border-sky-900/40'}`}>
           <button
             type="button"
-            onClick={() => navigateTo('welcome')}
-            className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors text-left cursor-pointer`}
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-rose-600 disabled:opacity-60 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors text-left cursor-pointer`}
           >
             <div className="flex items-center gap-3.5">
               <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60">

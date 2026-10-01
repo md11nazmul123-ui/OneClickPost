@@ -9,8 +9,14 @@ export const BottomNav: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
   const { screen, navigateTo, t, theme } = useApp();
   const isSmooth = theme === 'smooth' || theme === 'light';
 
-  // Hide bottom nav on splash, welcome, and uploading screens
-  if (screen === 'splash' || screen === 'welcome' || screen === 'uploading') {
+  // Hide bottom nav on splash, welcome, auth and uploading screens
+  if (
+    screen === 'splash' ||
+    screen === 'welcome' ||
+    screen === 'login' ||
+    screen === 'register' ||
+    screen === 'uploading'
+  ) {
     return null;
   }
 

@@ -2,20 +2,41 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ArrowLeft, User, Mail, Sparkles, Check, Camera, Shield } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  Sparkles,
+  Check,
+  Camera,
+  Settings,
+  LogOut,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react';
 
 export const ProfileScreen: React.FC = () => {
-  const { user, updateUser, goBack, t } = useApp();
+  const { user, updateUser, goBack, navigateTo, t } = useApp();
+  const { logout } = useAuth();
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [bio, setBio] = useState(user.bio || 'Creating viral multi-platform short video content.');
   const [showSavedToast, setShowSavedToast] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateUser({ name, email, bio });
     setShowSavedToast(true);
     setTimeout(() => setShowSavedToast(false), 2000);
+  };
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    await logout(); // সার্ভারে Token বাতিল + কুকি মুছে ফেলা; AuthGate Welcome-এ নিয়ে যাবে
+    setLoggingOut(false);
   };
 
   return (
@@ -131,6 +152,47 @@ export const ProfileScreen: React.FC = () => {
           {t('save')}
         </button>
       </form>
+
+      {/* Settings & Logout */}
+      <div className="glass-card rounded-3xl p-3 border border-sky-800/70 shadow-2xl space-y-1">
+        <button
+          type="button"
+          onClick={() => navigateTo('settings')}
+          className="w-full flex items-center justify-between p-3.5 rounded-2xl text-slate-200 hover:bg-sky-900/30 transition-colors text-left cursor-pointer group"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-sky-950/60 border border-sky-800/60">
+              <Settings className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <span className="text-sm font-bold block">Settings</span>
+              <span className="text-[11px] text-slate-400">Language, theme, notifications, daily goal</span>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white group-hover:translate-x-1 transition-transform" />
+        </button>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="w-full flex items-center justify-between p-3.5 rounded-2xl text-rose-400 hover:bg-rose-950/20 disabled:opacity-60 transition-colors text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-900/60">
+              {loggingOut ? (
+                <Loader2 className="w-5 h-5 text-rose-400 animate-spin" />
+              ) : (
+                <LogOut className="w-5 h-5 text-rose-400" />
+              )}
+            </div>
+            <div>
+              <span className="text-sm font-bold block">{t('logout')}</span>
+              <span className="text-[11px] text-slate-400">Sign out of OneClickPost session</span>
+            </div>
+          </div>
+        </button>
+      </div>
     </div>
   );
 };

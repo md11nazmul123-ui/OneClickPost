@@ -3,6 +3,8 @@ export type PlatformId = 'youtube' | 'facebook' | 'instagram' | 'tiktok' | 'x' |
 export type ScreenId = 
   | 'splash'
   | 'welcome'
+  | 'login'
+  | 'register'
   | 'dashboard'
   | 'create'
   | 'platforms'
