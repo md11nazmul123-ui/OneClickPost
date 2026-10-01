@@ -2,6 +2,8 @@
 
 import React, { useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useMediaUpload } from '../context/MediaUploadContext';
+import { validateVideoFile } from '../lib/media-upload';
 import { SAMPLE_VIDEOS } from '../data/initialData';
 import { PreviewPostModal } from '../components/PreviewPostModal';
 import { VideoTrimmerModal } from '../components/VideoTrimmerModal';
@@ -62,7 +64,9 @@ export const CreatePostScreen: React.FC = () => {
     t,
   } = useApp();
 
+  const upload = useMediaUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [showSampleModal, setShowSampleModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showTrimmerModal, setShowTrimmerModal] = useState(false);
@@ -70,11 +74,23 @@ export const CreatePostScreen: React.FC = () => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const objectUrl = URL.createObjectURL(file);
-      setVideoUrl(objectUrl);
-      setVideoFileName(file.name);
+    e.target.value = ''; // একই ফাইল আবার সিলেক্ট করা যাবে
+    if (!file) return;
+
+    // সার্ভারে পাঠানোর আগেই ব্রাউজারে যাচাই (সার্ভারেও আবার যাচাই হবে)
+    const invalid = validateVideoFile(file);
+    if (invalid) {
+      setFileError(invalid);
+      return;
     }
+    setFileError(null);
+
+    const objectUrl = URL.createObjectURL(file);
+    setVideoUrl(objectUrl);
+    setVideoFileName(file.name);
+
+    // আসল আপলোড শুরু (প্রোগ্রেস নিচে দেখাবে)
+    void upload.startUpload(file);
   };
 
   const handleCustomHashtagsChange = (value: string) => {
@@ -232,7 +248,7 @@ export const CreatePostScreen: React.FC = () => {
                     {t('uploadPrompt')}
                   </p>
                   <p className="text-[11px] text-slate-400">
-                    Supports MP4, MOV, WebM up to 500MB
+                    Supports MP4, MOV, WebM up to 2 GB
                   </p>
                 </div>
               )}
@@ -317,18 +333,46 @@ export const CreatePostScreen: React.FC = () => {
             <input
               ref={fileInputRef}
               type="file"
-              accept="video/*"
+              accept="video/mp4,video/quicktime,video/webm"
               className="hidden"
               onChange={handleFileUpload}
             />
 
             {/* Video Info & Change Media Buttons */}
             <div className="space-y-2">
-              <div className="p-2.5 rounded-xl bg-[#040e1d] border border-sky-950 flex items-center justify-between text-xs">
-                <span className="text-slate-300 truncate max-w-[200px] font-medium">
-                  {videoFileName || 'Selected Video'}
-                </span>
-                <span className="text-[10px] text-cyan-400 font-mono">Ready</span>
+              <div className="p-2.5 rounded-xl bg-[#040e1d] border border-sky-950 space-y-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-slate-300 truncate max-w-[200px] font-medium">
+                    {upload.fileName || videoFileName || 'Selected Video'}
+                  </span>
+                  {upload.status === 'uploading' && (
+                    <span className="text-[10px] text-amber-300 font-mono">Uploading {upload.progress}%</span>
+                  )}
+                  {upload.status === 'ready' && (
+                    <span className="text-[10px] text-emerald-400 font-mono">✓ Uploaded</span>
+                  )}
+                  {upload.status === 'error' && (
+                    <span className="text-[10px] text-rose-400 font-mono">Failed</span>
+                  )}
+                  {upload.status === 'idle' && (
+                    <span className="text-[10px] text-slate-500 font-mono">Not uploaded</span>
+                  )}
+                </div>
+
+                {upload.status === 'uploading' && (
+                  <div className="h-1.5 w-full rounded-full bg-sky-950 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all duration-300"
+                      style={{ width: `${upload.progress}%` }}
+                    />
+                  </div>
+                )}
+
+                {(upload.status === 'error' || fileError) && (
+                  <p role="alert" className="text-[11px] text-rose-400">
+                    {fileError ?? upload.error}
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-2">

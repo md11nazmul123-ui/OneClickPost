@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppProvider, useApp } from '../context/AppContext';
 import { AuthProvider } from '../context/AuthContext';
+import { MediaUploadProvider } from '../context/MediaUploadContext';
 import { AuthGate } from './AuthGate';
 import { Header } from '../components/Header';
 import { BottomNav } from '../components/BottomNav';
@@ -183,8 +184,10 @@ export default function ClientApp() {
   return (
     <AuthProvider>
       <AppProvider>
-        <AuthGate />
-        <MainRouter />
+        <MediaUploadProvider>
+          <AuthGate />
+          <MainRouter />
+        </MediaUploadProvider>
       </AppProvider>
     </AuthProvider>
   );
