@@ -152,13 +152,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [screen, setScreen] = useState<ScreenId>('splash');
   const [historyStack, setHistoryStack] = useState<ScreenId[]>([]);
 
-  // Global Theme (persists in localStorage, defaults to 'dark')
+  // Global Theme (persists in localStorage, defaults to Day/'light')
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('ocp_theme');
     if (saved === 'night' || saved === 'dark' || saved === 'smooth' || saved === 'light') {
       return saved as ThemeMode;
     }
-    return 'dark';
+    return 'light';
   });
 
   const applyTheme = (newTheme: ThemeMode) => {
@@ -179,16 +179,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const toggleTheme = () => {
-    // Cycle through: night -> dark -> smooth -> night
-    const nextTheme: ThemeMode = 
+    // Cycle: Day (default) -> Night -> Dark -> Smooth -> Day
+    const nextTheme: ThemeMode =
+      theme === 'light' ? 'night' :
       theme === 'night' ? 'dark' :
-      theme === 'dark' ? 'smooth' : 'night';
+      theme === 'dark' ? 'smooth' : 'light';
     setTheme(nextTheme);
   };
 
+  // Splash, Welcome, Login & Register are always shown in Day mode, whatever the user picked
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    const alwaysDay =
+      screen === 'splash' || screen === 'welcome' || screen === 'login' || screen === 'register';
+    applyTheme(alwaysDay ? 'light' : theme);
+  }, [theme, screen]);
 
   // Language
   const [language, setLanguageState] = useState<LanguageCode>(() => {

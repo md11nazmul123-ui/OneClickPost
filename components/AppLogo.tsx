@@ -3,9 +3,9 @@
 import React from 'react';
 
 /**
- * Universal Theme-Agnostic Application Logo
- * Maintains an invariant high-contrast dark studio appearance across
- * Night, Dark, Smooth, and Light modes without shifting during theme toggling.
+ * OneClickPost brand logo.
+ * Mark: one video (play) → three dots (every platform).
+ * Same look in every theme (Day, Night, Dark, Smooth).
  */
 export interface AppLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -14,77 +14,63 @@ export interface AppLogoProps {
   onClick?: () => void;
 }
 
+const SIZE_CLASS: Record<NonNullable<AppLogoProps['size']>, string> = {
+  sm: 'w-8 h-8',
+  md: 'w-9 h-9 sm:w-10 sm:h-10',
+  lg: 'w-14 h-14 sm:w-16 sm:h-16',
+  xl: 'w-24 h-24 sm:w-28 sm:h-28',
+};
+
+export const AppLogoMark: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const id = React.useId().replace(/:/g, '');
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 64 64"
+      role="img"
+      aria-label="OneClickPost"
+      data-platform-icon="true"
+    >
+      <defs>
+        <linearGradient id={`ocp-g-${id}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#3B63E6" />
+          <stop offset="1" stopColor="#2140AD" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="15" fill={`url(#ocp-g-${id})`} />
+      <path
+        d="M18 21.2c0-2.3 2.5-3.7 4.5-2.5l15.5 9.4c1.9 1.1 1.9 3.9 0 5l-15.5 9.4c-2 1.2-4.5-.2-4.5-2.5z"
+        fill="#FFFFFF"
+      />
+      <circle cx="47" cy="19" r="3.4" fill="#FFFFFF" fillOpacity="0.7" />
+      <circle cx="50" cy="31.5" r="3.4" fill="#FFFFFF" />
+      <circle cx="47" cy="44" r="3.4" fill="#FFFFFF" fillOpacity="0.7" />
+    </svg>
+  );
+};
+
 export const AppLogo: React.FC<AppLogoProps> = ({
   size = 'md',
   showWordmark = false,
   className = '',
   onClick,
 }) => {
-  const sizeConfig = {
-    sm: {
-      box: 'w-8 h-8 rounded-lg',
-      inner: 'rounded-[6px]',
-      svg: 'w-4 h-4',
-    },
-    md: {
-      box: 'w-9 h-9 sm:w-10 sm:h-10 rounded-xl',
-      inner: 'rounded-[10px]',
-      svg: 'w-5 h-5',
-    },
-    lg: {
-      box: 'w-14 h-14 sm:w-16 sm:h-16 rounded-2xl',
-      inner: 'rounded-[14px]',
-      svg: 'w-7 h-7 sm:w-8 sm:h-8',
-    },
-    xl: {
-      box: 'w-24 h-24 sm:w-28 sm:h-28 rounded-3xl',
-      inner: 'rounded-[22px]',
-      svg: 'w-12 h-12 sm:w-14 sm:h-14',
-    },
-  };
-
-  const config = sizeConfig[size] || sizeConfig.md;
-
   return (
     <div
       onClick={onClick}
       className={`inline-flex items-center gap-2.5 ${onClick ? 'cursor-pointer group' : ''} ${className}`}
     >
-      {/* High-Contrast Theme-Agnostic Logo Box */}
-      <div
-        data-app-logo="true"
-        data-platform-icon="true"
-        className={`app-brand-logo preserve-brand ${config.box} bg-gradient-to-tr from-pink-500 via-purple-600 to-cyan-400 p-[1.5px] shadow-md shadow-cyan-500/25 shrink-0 transition-transform ${
+      <span
+        className={`preserve-brand inline-flex shrink-0 rounded-[24%] shadow-sm transition-transform ${SIZE_CLASS[size] || SIZE_CLASS.md} ${
           onClick ? 'group-hover:scale-105' : ''
         }`}
-        style={{
-          background: 'linear-gradient(135deg, #ec4899 0%, #9333ea 50%, #06b6d4 100%)',
-        }}
+        data-platform-icon="true"
       >
-        <div
-          className={`brand-logo-inner w-full h-full ${config.inner} flex items-center justify-center relative overflow-hidden`}
-          style={{ backgroundColor: '#040e1e', background: '#040e1e' }}
-        >
-          {/* Unique Broadcast Prism Emblem - Invariant High-Contrast Vector */}
-          <svg
-            className={`${config.svg} shrink-0`}
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-            style={{ color: '#00F0FF' }}
-          >
-            <rect x="2" y="3" width="20" height="13" rx="3.5" stroke="#00F0FF" strokeWidth="2" />
-            <path d="M10 7.5L15 10L10 12.5V7.5Z" fill="url(#brandGradUnified)" />
-            <path d="M7 20H17" stroke="#00F0FF" strokeWidth="2" strokeLinecap="round" />
-            <path d="M12 16V20" stroke="#00F0FF" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="18" cy="6.5" r="1.5" fill="#EF4444" />
-          </svg>
-        </div>
-      </div>
-
+        <AppLogoMark className="w-full h-full" />
+      </span>
       {showWordmark && (
-        <span className="text-base sm:text-lg font-black tracking-tight text-white select-none">
-          OneClick<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Post</span>
+        <span className="ocp-wordmark text-base sm:text-lg font-extrabold tracking-tight select-none">
+          OneClick<span className="ocp-wordmark-accent">Post</span>
         </span>
       )}
     </div>

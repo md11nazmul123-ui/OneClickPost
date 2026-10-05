@@ -49,6 +49,13 @@ export const Header: React.FC = () => {
 
   const themeOptions: { id: ThemeMode; label: string; bnLabel: string; icon: string; desc: string }[] = [
     {
+      id: 'light',
+      label: 'Day Mode',
+      bnLabel: 'ডে মোড',
+      icon: '☀️',
+      desc: 'Default bright & clean daylight look',
+    },
+    {
       id: 'night',
       label: 'Night Mode',
       bnLabel: 'নাইট মোড',
@@ -216,20 +223,22 @@ export const Header: React.FC = () => {
                 setShowLangMenu(false);
               }}
               className={`flex items-center gap-1 px-2 py-1.5 sm:px-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                isSmooth
+                theme === 'light'
+                  ? 'bg-sky-50 hover:bg-sky-100 border-sky-300 text-sky-900 shadow-sm'
+                  : isSmooth
                   ? 'bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-900 shadow-sm'
                   : theme === 'night'
                   ? 'bg-sky-950/80 hover:bg-sky-900 border-cyan-400/80 text-cyan-300 shadow-sm shadow-cyan-950/50'
                   : 'bg-[#07172b] hover:bg-[#0c2442] border-sky-900/70 text-slate-300'
               }`}
-              title="Switch Appearance: Night, Dark, or Smooth"
+              title="Switch Appearance: Day, Night, Dark, or Smooth"
               aria-label="Theme mode switcher"
             >
               <span className="text-sm">
-                {theme === 'night' ? '🌙' : isSmooth ? '✨' : '🌑'}
+                {theme === 'light' ? '☀️' : theme === 'night' ? '🌙' : isSmooth ? '✨' : '🌑'}
               </span>
               <span className="hidden sm:inline capitalize">
-                {theme === 'night' ? 'Night' : isSmooth ? 'Smooth' : 'Dark'}
+                {theme === 'light' ? 'Day' : theme === 'night' ? 'Night' : isSmooth ? 'Smooth' : 'Dark'}
               </span>
             </button>
 
@@ -246,11 +255,11 @@ export const Header: React.FC = () => {
                     isSmooth ? 'border-slate-200 text-slate-600' : 'border-sky-900/50 text-slate-400'
                   }`}>
                     <span>Appearance & Contrast</span>
-                    <span className={`text-[10px] font-mono ${isSmooth ? 'text-blue-600' : 'text-cyan-400'}`}>3 Modes</span>
+                    <span className={`text-[10px] font-mono ${isSmooth ? 'text-blue-600' : 'text-cyan-400'}`}>4 Modes</span>
                   </div>
 
                   {themeOptions.map((opt) => {
-                    const isSelected = theme === opt.id || (opt.id === 'smooth' && theme === 'light');
+                    const isSelected = theme === opt.id;
                     return (
                       <button
                         key={opt.id}

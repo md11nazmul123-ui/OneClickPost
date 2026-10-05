@@ -1,5 +1,98 @@
 @import "tailwindcss";
 
+/* Brand palette: every former neon hue (cyan, sky, blue, indigo, violet, purple, fuchsia, pink)
+   now maps to one calm cobalt scale. Platform brand colors are inline and unaffected. */
+@theme {
+  --color-cyan-50: #eef3ff;
+  --color-cyan-100: #dde7ff;
+  --color-cyan-200: #c0d2fe;
+  --color-cyan-300: #94b2fc;
+  --color-cyan-400: #6189f6;
+  --color-cyan-500: #3d66ec;
+  --color-cyan-600: #2a4fd9;
+  --color-cyan-700: #233fb5;
+  --color-cyan-800: #213791;
+  --color-cyan-900: #1f3273;
+  --color-cyan-950: #151f45;
+  --color-sky-50: #eef3ff;
+  --color-sky-100: #dde7ff;
+  --color-sky-200: #c0d2fe;
+  --color-sky-300: #94b2fc;
+  --color-sky-400: #6189f6;
+  --color-sky-500: #3d66ec;
+  --color-sky-600: #2a4fd9;
+  --color-sky-700: #233fb5;
+  --color-sky-800: #213791;
+  --color-sky-900: #1f3273;
+  --color-sky-950: #151f45;
+  --color-blue-50: #eef3ff;
+  --color-blue-100: #dde7ff;
+  --color-blue-200: #c0d2fe;
+  --color-blue-300: #94b2fc;
+  --color-blue-400: #6189f6;
+  --color-blue-500: #3d66ec;
+  --color-blue-600: #2a4fd9;
+  --color-blue-700: #233fb5;
+  --color-blue-800: #213791;
+  --color-blue-900: #1f3273;
+  --color-blue-950: #151f45;
+  --color-indigo-50: #eef3ff;
+  --color-indigo-100: #dde7ff;
+  --color-indigo-200: #c0d2fe;
+  --color-indigo-300: #94b2fc;
+  --color-indigo-400: #6189f6;
+  --color-indigo-500: #3d66ec;
+  --color-indigo-600: #2a4fd9;
+  --color-indigo-700: #233fb5;
+  --color-indigo-800: #213791;
+  --color-indigo-900: #1f3273;
+  --color-indigo-950: #151f45;
+  --color-violet-50: #eef3ff;
+  --color-violet-100: #dde7ff;
+  --color-violet-200: #c0d2fe;
+  --color-violet-300: #94b2fc;
+  --color-violet-400: #6189f6;
+  --color-violet-500: #3d66ec;
+  --color-violet-600: #2a4fd9;
+  --color-violet-700: #233fb5;
+  --color-violet-800: #213791;
+  --color-violet-900: #1f3273;
+  --color-violet-950: #151f45;
+  --color-purple-50: #eef3ff;
+  --color-purple-100: #dde7ff;
+  --color-purple-200: #c0d2fe;
+  --color-purple-300: #94b2fc;
+  --color-purple-400: #6189f6;
+  --color-purple-500: #3d66ec;
+  --color-purple-600: #2a4fd9;
+  --color-purple-700: #233fb5;
+  --color-purple-800: #213791;
+  --color-purple-900: #1f3273;
+  --color-purple-950: #151f45;
+  --color-fuchsia-50: #eef3ff;
+  --color-fuchsia-100: #dde7ff;
+  --color-fuchsia-200: #c0d2fe;
+  --color-fuchsia-300: #94b2fc;
+  --color-fuchsia-400: #6189f6;
+  --color-fuchsia-500: #3d66ec;
+  --color-fuchsia-600: #2a4fd9;
+  --color-fuchsia-700: #233fb5;
+  --color-fuchsia-800: #213791;
+  --color-fuchsia-900: #1f3273;
+  --color-fuchsia-950: #151f45;
+  --color-pink-50: #eef3ff;
+  --color-pink-100: #dde7ff;
+  --color-pink-200: #c0d2fe;
+  --color-pink-300: #94b2fc;
+  --color-pink-400: #6189f6;
+  --color-pink-500: #3d66ec;
+  --color-pink-600: #2a4fd9;
+  --color-pink-700: #233fb5;
+  --color-pink-800: #213791;
+  --color-pink-900: #1f3273;
+  --color-pink-950: #151f45;
+}
+
 @layer base {
   /* ========================================================================= */
   /* 1. DARK MODE (Default Executive Studio Charcoal)                          */
@@ -7,9 +100,7 @@
   :root, [data-theme="dark"], .dark {
     --theme-mode: dark;
     --bg-main: #0b0f19;
-    --bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(30, 58, 138, 0.28), transparent 70%),
-      radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.06), transparent 40%),
-      radial-gradient(circle at 90% 70%, rgba(139, 92, 246, 0.05), transparent 45%);
+    --bg-gradient: none;
     --card-surface: #111827;
     --card-surface-subtle: #162032;
     --card-border: #1e293b;
@@ -20,9 +111,9 @@
     --text-primary: #f8fafc;
     --text-secondary: #cbd5e1;
     --text-muted: #94a3b8;
-    --electric-blue: #0ea5e9;
-    --cyan-glow: #06b6d4;
-    --purple-gradient: #8b5cf6;
+    --electric-blue: #3d66ec;
+    --cyan-glow: #3d66ec;
+    --purple-gradient: #3d66ec;
     --scrollbar-track: #0b0f19;
     --scrollbar-thumb: #1e293b;
   }
@@ -33,22 +124,20 @@
   [data-theme="night"], .night {
     --theme-mode: night;
     --bg-main: #02040a;
-    --bg-gradient: radial-gradient(ellipse 90% 60% at 50% -20%, rgba(14, 165, 233, 0.18), transparent 75%),
-      radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.12), transparent 50%),
-      radial-gradient(circle at 15% 30%, rgba(6, 182, 212, 0.1), transparent 40%);
+    --bg-gradient: none;
     --card-surface: #040a17;
     --card-surface-subtle: #061226;
-    --card-border: rgba(14, 165, 233, 0.35);
+    --card-border: rgba(61, 102, 236, 0.35);
     --card-glass-bg: linear-gradient(145deg, rgba(4, 12, 26, 0.92) 0%, rgba(2, 6, 14, 0.96) 100%);
-    --card-glass-border: rgba(56, 189, 248, 0.3);
+    --card-glass-border: rgba(61, 102, 236, 0.3);
     --header-bg: rgba(2, 4, 10, 0.92);
-    --header-border: rgba(14, 165, 233, 0.3);
+    --header-border: rgba(61, 102, 236, 0.3);
     --text-primary: #ffffff;
     --text-secondary: #e2e8f0;
     --text-muted: #94a3b8;
-    --electric-blue: #38bdf8;
-    --cyan-glow: #00f0ff;
-    --purple-gradient: #a855f7;
+    --electric-blue: #6189f6;
+    --cyan-glow: #6189f6;
+    --purple-gradient: #6189f6;
     --scrollbar-track: #02040a;
     --scrollbar-thumb: #0e3a66;
   }
@@ -71,9 +160,9 @@
     --text-primary: #0f172a;
     --text-secondary: #1e293b;
     --text-muted: #475569;
-    --electric-blue: #0284c7;
-    --cyan-glow: #0891b2;
-    --purple-gradient: #6366f1;
+    --electric-blue: #2a4fd9;
+    --cyan-glow: #2a4fd9;
+    --purple-gradient: #3d66ec;
     --scrollbar-track: #f1f5f9;
     --scrollbar-thumb: #cbd5e1;
   }
@@ -94,19 +183,19 @@
 
 /* Custom glow and backdrop effects */
 .glow-cyan {
-  box-shadow: 0 0 25px -4px rgba(6, 182, 212, 0.35);
+  box-shadow: 0 0 25px -4px rgba(61, 102, 236, 0.35);
 }
 
 .glow-blue {
-  box-shadow: 0 0 35px -5px rgba(14, 165, 233, 0.4);
+  box-shadow: 0 0 35px -5px rgba(61, 102, 236, 0.4);
 }
 
 .glow-purple {
-  box-shadow: 0 0 30px -4px rgba(139, 92, 246, 0.35);
+  box-shadow: 0 0 30px -4px rgba(61, 102, 236, 0.35);
 }
 
 .gradient-btn {
-  background: linear-gradient(135deg, #7c3aed 0%, #2563eb 50%, #06b6d4 100%);
+  background: linear-gradient(135deg, #233fb5 0%, #2a4fd9 50%, #3d66ec 100%);
   background-size: 200% 200%;
   animation: gradientShift 6s ease infinite;
 }
@@ -266,8 +355,8 @@
 }
 
 .glass-card-hover:hover {
-  border-color: rgba(56, 189, 248, 0.5);
-  box-shadow: 0 10px 30px -5px rgba(2, 6, 23, 0.4), 0 0 20px -3px rgba(14, 165, 233, 0.2);
+  border-color: rgba(61, 102, 236, 0.5);
+  box-shadow: 0 10px 30px -5px rgba(2, 6, 23, 0.4), 0 0 20px -3px rgba(61, 102, 236, 0.2);
   transform: translateY(-2px);
 }
 
@@ -284,7 +373,7 @@
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #0ea5e9;
+  background: #3d66ec;
 }
 
 /* ========================================================================= */
@@ -316,8 +405,8 @@
   .text-sky-400,
   .text-blue-400,
   .text-blue-500 {
-    color: #00f0ff !important;
-    text-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+    color: #6189f6 !important;
+    text-shadow: 0 0 12px rgba(61, 102, 236, 0.25);
   }
 
   .text-emerald-300,
@@ -333,7 +422,7 @@
   .text-purple-400,
   .text-purple-500,
   .text-indigo-400 {
-    color: #c084fc !important;
+    color: #94b2fc !important;
     text-shadow: 0 0 12px rgba(192, 132, 252, 0.25);
   }
 
@@ -378,7 +467,7 @@
   .text-cyan-500,
   .text-sky-300,
   .text-sky-400 {
-    color: #00f0ff !important;
+    color: #6189f6 !important;
   }
 
   .text-emerald-300,
@@ -404,7 +493,7 @@
   .bg-\[\#07172b\],
   .bg-\[\#07182c\] {
     background-color: #040c1c !important;
-    border-color: rgba(56, 189, 248, 0.3) !important;
+    border-color: rgba(61, 102, 236, 0.3) !important;
   }
 }
 
@@ -415,8 +504,8 @@
 /* ========================================================================= */
 .app-brand-logo,
 [data-app-logo="true"] {
-  background: linear-gradient(135deg, #ec4899 0%, #9333ea 50%, #06b6d4 100%) !important;
-  box-shadow: 0 0 16px rgba(6, 182, 212, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  background: linear-gradient(135deg, #3d66ec 0%, #233fb5 50%, #3d66ec 100%) !important;
+  box-shadow: 0 0 16px rgba(61, 102, 236, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
   border: none !important;
   color: #ffffff !important;
   display: inline-flex !important;
@@ -438,8 +527,8 @@
 
 .app-brand-logo svg,
 [data-app-logo="true"] svg {
-  color: #00f0ff !important;
-  filter: drop-shadow(0 0 4px rgba(0, 240, 255, 0.5)) !important;
+  color: #6189f6 !important;
+  filter: drop-shadow(0 0 4px rgba(61, 102, 236, 0.5)) !important;
   flex-shrink: 0 !important;
 }
 
@@ -447,7 +536,7 @@
 [data-app-logo="true"] svg rect,
 .app-brand-logo svg path[stroke],
 [data-app-logo="true"] svg path[stroke] {
-  stroke: #00f0ff !important;
+  stroke: #6189f6 !important;
 }
 
 .app-brand-logo svg circle,
@@ -581,7 +670,7 @@
   .text-blue-400,
   .text-blue-500,
   .text-blue-600 {
-    color: #0284c7 !important;
+    color: #2a4fd9 !important;
     font-weight: 700 !important;
     text-shadow: none !important;
   }
@@ -665,8 +754,8 @@
   /* App Brand Logo Icon Container strictly stays dark midnight like in night mode */
   .app-brand-logo,
   [data-app-logo="true"] {
-    background: linear-gradient(135deg, #ec4899 0%, #9333ea 50%, #06b6d4 100%) !important;
-    box-shadow: 0 0 16px rgba(6, 182, 212, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    background: linear-gradient(135deg, #3d66ec 0%, #233fb5 50%, #3d66ec 100%) !important;
+    box-shadow: 0 0 16px rgba(61, 102, 236, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
     border: none !important;
     color: #ffffff !important;
   }
@@ -682,14 +771,14 @@
   }
   .app-brand-logo svg,
   [data-app-logo="true"] svg {
-    color: #00f0ff !important;
-    filter: drop-shadow(0 0 4px rgba(0, 240, 255, 0.5)) !important;
+    color: #6189f6 !important;
+    filter: drop-shadow(0 0 4px rgba(61, 102, 236, 0.5)) !important;
   }
   .app-brand-logo svg rect,
   [data-app-logo="true"] svg rect,
   .app-brand-logo svg path[stroke],
   [data-app-logo="true"] svg path[stroke] {
-    stroke: #00f0ff !important;
+    stroke: #6189f6 !important;
   }
   .app-brand-logo svg circle,
   [data-app-logo="true"] svg circle {
@@ -742,7 +831,7 @@
   [class*="from-[#092244]"] {
     background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f5f3ff 100%) !important;
     border: 1px solid #bae6fd !important;
-    box-shadow: 0 4px 16px -2px rgba(14, 165, 233, 0.08) !important;
+    box-shadow: 0 4px 16px -2px rgba(61, 102, 236, 0.08) !important;
   }
 
   /* Demographic bar tracks in smooth mode */
@@ -758,7 +847,7 @@
   span[class*="bg-sky-950"] {
     background-color: #e0f2fe !important;
     border-color: #7dd3fc !important;
-    color: #0284c7 !important;
+    color: #2a4fd9 !important;
     font-weight: 700 !important;
   }
 
@@ -799,8 +888,8 @@
   button[class*="bg-sky-950"],
   button.bg-cyan-950,
   button[class*="bg-cyan-950"] {
-    background-color: #0284c7 !important;
-    border-color: #0284c7 !important;
+    background-color: #2a4fd9 !important;
+    border-color: #2a4fd9 !important;
     color: #ffffff !important;
     font-weight: 700 !important;
   }
@@ -880,9 +969,9 @@
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
   }
   input:focus, textarea:focus, select:focus {
-    border-color: #0284c7 !important;
+    border-color: #2a4fd9 !important;
     outline: none !important;
-    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+    box-shadow: 0 0 0 3px rgba(61, 102, 236, 0.15) !important;
   }
   input::placeholder, textarea::placeholder {
     color: #94a3b8 !important;
@@ -901,15 +990,15 @@
 /* ========================================================================= */
 @keyframes ringInitialGlow {
   0% {
-    filter: drop-shadow(0 0 2px rgba(6, 182, 212, 0.2));
+    filter: drop-shadow(0 0 2px rgba(61, 102, 236, 0.2));
     transform: scale(0.97);
   }
   50% {
-    filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.6));
+    filter: drop-shadow(0 0 10px rgba(61, 102, 236, 0.6));
     transform: scale(1.02);
   }
   100% {
-    filter: drop-shadow(0 0 5px rgba(6, 182, 212, 0.4));
+    filter: drop-shadow(0 0 5px rgba(61, 102, 236, 0.4));
     transform: scale(1);
   }
 }
@@ -956,3 +1045,66 @@
   will-change: stroke-dashoffset, stroke;
 }
 
+
+/* ========================================================================= */
+/* PROFESSIONAL FINISH: no neon glow, no decorative light orbs               */
+/* ========================================================================= */
+.glow-cyan, .glow-blue, .glow-purple {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+}
+.gradient-btn {
+  background: #2a4fd9 !important;
+  animation: none !important;
+}
+.gradient-btn:hover { background: #233fb5 !important; }
+.pointer-events-none.rounded-full[class*="blur-3xl"],
+.pointer-events-none.rounded-full[class*="blur-2xl"],
+.pointer-events-none[class*="blur-xl"][class*="bg-gradient"] {
+  display: none !important;
+}
+
+/* Brand wordmark */
+.ocp-wordmark { color: var(--text-primary); }
+.ocp-wordmark-accent { color: #2a4fd9; }
+[data-theme="dark"] .ocp-wordmark-accent,
+[data-theme="night"] .ocp-wordmark-accent { color: #6189f6; }
+
+/* ========================================================================= */
+/* SMOOTH MODE: warm, low-glare paper tone (Day rules + softer surfaces)     */
+/* ========================================================================= */
+[data-theme="smooth"], .smooth {
+  --bg-main: #f3efe7;
+  --card-surface: #fbf8f2;
+  --card-surface-subtle: #f6f1e8;
+  --card-border: #e3dccd;
+  --card-glass-bg: #fbf8f2;
+  --card-glass-border: #e3dccd;
+  --header-bg: rgba(251, 248, 242, 0.98);
+  --header-border: #e3dccd;
+  --text-primary: #26221c;
+  --text-secondary: #39342c;
+  --text-muted: #6a6256;
+
+  body, #root, main {
+    background-color: #f3efe7 !important;
+    color: #26221c !important;
+  }
+  h1, h2, h3, h4, h5, h6 { color: #26221c !important; }
+  .glass-card,
+  .bg-white:not([data-platform-icon]):not(.preserve-brand),
+  main [class*="bg-[#0"]:not([data-platform-icon]):not(.preserve-brand) {
+    background-color: #fbf8f2 !important;
+    border-color: #e3dccd !important;
+  }
+  .bg-slate-50, .bg-slate-100 { background-color: #f6f1e8 !important; }
+  .border-slate-200, .border-slate-100 { border-color: #e3dccd !important; }
+  header, nav {
+    background-color: rgba(251, 248, 242, 0.98) !important;
+    border-color: #e3dccd !important;
+  }
+  input, textarea, select {
+    background-color: #fffdf9 !important;
+    border-color: #d8cfbd !important;
+    color: #26221c !important;
+  }
+}

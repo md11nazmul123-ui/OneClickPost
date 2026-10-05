@@ -74,21 +74,21 @@ export const RegisterScreen: React.FC = () => {
   };
 
   const inputClass =
-    'w-full rounded-xl bg-[#041326] border border-sky-800/80 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition';
+    'w-full rounded-xl bg-white border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition';
 
   const fieldError = (key: string) =>
-    fieldErrors[key]?.[0] ? <p className="mt-1 text-[11px] text-rose-400">{fieldErrors[key][0]}</p> : null;
+    fieldErrors[key]?.[0] ? <p className="mt-1 text-[11px] text-rose-600">{fieldErrors[key][0]}</p> : null;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden bg-[#020713]">
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/3 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden bg-gradient-to-b from-sky-50 via-white to-indigo-50">
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/3 w-80 h-80 bg-purple-400/15 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md glass-card rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 border border-sky-800/70">
+      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-[0_20px_60px_rgba(15,23,42,0.12)] relative z-10 border border-slate-200">
         <button
           type="button"
           onClick={() => navigateTo('welcome')}
-          className="mb-4 p-2 rounded-xl border border-sky-800/70 text-slate-300 hover:text-white hover:bg-sky-900/40 transition-colors cursor-pointer"
+          className="mb-4 p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
           aria-label="Back"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -96,19 +96,19 @@ export const RegisterScreen: React.FC = () => {
 
         <div className="flex flex-col items-center text-center mb-6">
           <AppLogo size="lg" />
-          <h2 className="text-2xl font-extrabold text-white mt-4 mb-1">{text.title}</h2>
-          <p className="text-xs sm:text-sm text-slate-400">{text.subtitle}</p>
+          <h2 className="text-2xl font-extrabold text-slate-950 mt-4 mb-1">{text.title}</h2>
+          <p className="text-xs sm:text-sm text-slate-600">{text.subtitle}</p>
         </div>
 
         {error && (
-          <div role="alert" className="mb-4 rounded-xl border border-rose-800/70 bg-rose-950/40 px-4 py-3 text-xs text-rose-300">
+          <div role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
-            <label htmlFor="reg-name" className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="reg-name" className="block text-xs font-semibold text-slate-700 mb-1.5">
               {text.name}
             </label>
             <input
@@ -125,7 +125,7 @@ export const RegisterScreen: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="reg-email" className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="reg-email" className="block text-xs font-semibold text-slate-700 mb-1.5">
               {text.email}
             </label>
             <input
@@ -144,7 +144,7 @@ export const RegisterScreen: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="reg-password" className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="reg-password" className="block text-xs font-semibold text-slate-700 mb-1.5">
               {text.password}
             </label>
             <div className="relative">
@@ -162,7 +162,7 @@ export const RegisterScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 cursor-pointer"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -173,7 +173,7 @@ export const RegisterScreen: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="reg-confirm" className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="reg-confirm" className="block text-xs font-semibold text-slate-700 mb-1.5">
               {text.confirm}
             </label>
             <input
@@ -186,7 +186,7 @@ export const RegisterScreen: React.FC = () => {
               onChange={(e) => setConfirm(e.target.value)}
               className={inputClass}
             />
-            {passwordsMismatch && <p className="mt-1 text-[11px] text-rose-400">{text.mismatch}</p>}
+            {passwordsMismatch && <p className="mt-1 text-[11px] text-rose-600">{text.mismatch}</p>}
           </div>
 
           <button
@@ -199,19 +199,19 @@ export const RegisterScreen: React.FC = () => {
           </button>
         </form>
 
-        <p className="mt-5 text-center text-xs text-slate-400">
+        <p className="mt-5 text-center text-xs text-slate-600">
           {text.haveAccount}{' '}
           <button
             type="button"
             onClick={() => navigateTo('login')}
-            className="font-bold text-cyan-400 hover:text-cyan-300 cursor-pointer"
+            className="font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
           >
             {text.login}
           </button>
         </p>
 
-        <div className="mt-6 pt-4 border-t border-sky-900/50 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
-          <ShieldCheck className="w-4 h-4 text-cyan-400" />
+        <div className="mt-6 pt-4 border-t border-slate-200 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+          <ShieldCheck className="w-4 h-4 text-blue-500" />
           <span>{text.secure}</span>
         </div>
       </div>

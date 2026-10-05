@@ -354,7 +354,7 @@ export const SettingsScreen: React.FC = () => {
                   : 'bg-gradient-to-tr from-purple-500/20 to-cyan-500/20 border-cyan-500/30 text-cyan-400'
               }`}
             >
-              {theme === 'night' ? '🌙' : theme === 'smooth' || theme === 'light' ? '✨' : '🌑'}
+              {theme === 'light' ? '☀️' : theme === 'night' ? '🌙' : theme === 'smooth' ? '✨' : '🌑'}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -368,7 +368,7 @@ export const SettingsScreen: React.FC = () => {
                       : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/60'
                   }`}
                 >
-                  {theme === 'night' ? 'Night Mode' : theme === 'smooth' || theme === 'light' ? 'Smooth Mode' : 'Dark Mode'} (Active)
+                  {theme === 'light' ? 'Day Mode' : theme === 'night' ? 'Night Mode' : theme === 'smooth' ? 'Smooth Mode' : 'Dark Mode'} (Active)
                 </span>
               </div>
               <p className={`text-[11px] ${isSmooth ? 'text-slate-600' : 'text-slate-400'}`}>
@@ -378,8 +378,40 @@ export const SettingsScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* 3 Theme Mode Selector Buttons: Night, Dark, Smooth */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+        {/* 4 Theme Mode Selector Buttons: Day (default), Night, Dark, Smooth */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          {/* 0. Day Mode (Default) */}
+          <button
+            type="button"
+            onClick={() => setTheme('light')}
+            className={`p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all cursor-pointer ${
+              theme === 'light'
+                ? 'bg-sky-50 border-sky-400 text-slate-900 shadow-md ring-1 ring-sky-400/50'
+                : isSmooth
+                ? 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
+                : 'bg-[#040e1e] border-sky-950 hover:border-sky-800 text-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">☀️</span>
+              <div>
+                <span className={`text-xs font-bold block ${isSmooth ? 'text-slate-900' : 'text-white'}`}>
+                  Day (ডে) · Default
+                </span>
+                <span className={`text-[10px] block ${isSmooth ? 'text-slate-600' : 'text-slate-400'}`}>Bright Daylight</span>
+              </div>
+            </div>
+            <div
+              className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                theme === 'light'
+                  ? 'bg-sky-500 border-sky-500 text-white'
+                  : 'border-slate-400 bg-transparent text-transparent'
+              }`}
+            >
+              <Check className="w-2.5 h-2.5 stroke-[3]" />
+            </div>
+          </button>
+
           {/* 1. Night Mode */}
           <button
             type="button"
@@ -449,27 +481,29 @@ export const SettingsScreen: React.FC = () => {
             type="button"
             onClick={() => setTheme('smooth')}
             className={`p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all cursor-pointer ${
-              theme === 'smooth' || theme === 'light'
+              theme === 'smooth'
                 ? 'bg-amber-50 border-amber-400 text-slate-900 shadow-md ring-1 ring-amber-400/50'
+                : isSmooth
+                ? 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
                 : 'bg-[#040e1e] border-sky-950 hover:border-sky-800 text-slate-300'
             }`}
           >
             <div className="flex items-center gap-2.5">
               <span className="text-xl">✨</span>
               <div>
-                <span className={`text-xs font-bold block ${theme === 'smooth' || theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                <span className={`text-xs font-bold block ${isSmooth ? 'text-slate-900' : 'text-white'}`}>
                   Smooth (স্মুথ)
                 </span>
-                <span className={`text-[10px] block ${theme === 'smooth' || theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
+                <span className={`text-[10px] block ${isSmooth ? 'text-slate-600' : 'text-slate-400'}`}>
                   Eye-Care Clarity
                 </span>
               </div>
             </div>
             <div
               className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                theme === 'smooth' || theme === 'light'
+                theme === 'smooth'
                   ? 'bg-amber-500 border-amber-500 text-white'
-                  : 'border-slate-700 bg-slate-900 text-transparent'
+                  : 'border-slate-400 bg-transparent text-transparent'
               }`}
             >
               <Check className="w-2.5 h-2.5 stroke-[3]" />
