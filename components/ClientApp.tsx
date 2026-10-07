@@ -183,12 +183,13 @@ const MainRouter: React.FC = () => {
 export default function ClientApp() {
   return (
     <AuthProvider>
-      <AppProvider>
-        <MediaUploadProvider>
+      {/* ভিডিও আপলোডের অবস্থা AppProvider-এর বাইরে, যাতে পাবলিশের সময় আপলোড করা ভিডিওটা পাওয়া যায় */}
+      <MediaUploadProvider>
+        <AppProvider>
           <AuthGate />
           <MainRouter />
-        </MediaUploadProvider>
-      </AppProvider>
+        </AppProvider>
+      </MediaUploadProvider>
     </AuthProvider>
   );
 }

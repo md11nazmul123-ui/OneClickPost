@@ -27,6 +27,8 @@ import {
 } from '../data/initialData';
 import { translations } from '../data/translations';
 import { useAuth } from './AuthContext';
+import { useMediaUpload } from './MediaUploadContext';
+import { postsApi, FINAL_TARGET_STATUSES, sanitizeForYouTube, normalizeTags, sleep, type ServerPost } from '../lib/posts-api';
 import {
   socialApi,
   toAppAccount,
@@ -760,82 +762,205 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [platformUploadStatus, setPlatformUploadStatus] = useState<Record<string, PlatformUploadStatus>>({});
   const [lastPublishedPost, setLastPublishedPost] = useState<PostItem | null>(null);
+  const mediaUpload = useMediaUpload();
+
+  // ── Publishing pipeline ──────────────────────────────────────────────────
+  // আসল YouTube চ্যানেল → সার্ভারে পাবলিশ (ব্যাকগ্রাউন্ডে), প্রতি ৩ সেকেন্ডে অবস্থা দেখা।
+  // বাকি প্ল্যাটফর্ম এখনো ডেমো (নিজ নিজ ধাপে আসল হবে)।
+  const pipelineRunningRef = useRef(false);
+
+  /** আসল YouTube চ্যানেলে পাবলিশ; প্রতিটা চ্যানেলের অবস্থা onUpdate দিয়ে জানায় */
+  const runServerPublish = async (
+    accountIds: string[],
+    isScheduled: boolean,
+    onUpdate: (key: string, patch: Partial<PlatformUploadStatus>) => void
+  ): Promise<string | null> => {
+    const failAll = (message: string) => {
+      accountIds.forEach((id) => onUpdate(id, { status: 'failed', error: message, progress: 100 }));
+      return null;
+    };
+
+    if (isScheduled) {
+      return failAll('Scheduling to YouTube is coming in the next update. Please use "Publish Now" for now.');
+    }
+    if (mediaUpload.status !== 'ready' || !mediaUpload.media) {
+      return failAll('Upload your video first and wait for "✓ Uploaded", then publish.');
+    }
+
+    const yt = platformSettings.youtube;
+    const title = sanitizeForYouTube(yt?.title || videoTitle || mediaUpload.media.original_name || 'New video', 100);
+    const description = sanitizeForYouTube(yt?.description || caption || '', 5000);
+    const tags = normalizeTags(yt?.hashtags?.length ? yt.hashtags : hashtags);
+
+    let post: ServerPost;
+    try {
+      post = await postsApi.publish({
+        media_id: mediaUpload.media.id,
+        title: title || 'New video',
+        description,
+        tags,
+        // Google যাচাই (audit) না হওয়া পর্যন্ত YouTube নিজেই ভিডিও Private রাখে
+        privacy: 'private',
+        made_for_kids: false,
+        account_ids: accountIds,
+      });
+    } catch (error) {
+      return failAll(error instanceof Error ? error.message : 'Could not start publishing.');
+    }
+
+    // শেষ না হওয়া পর্যন্ত অবস্থা দেখা (নেটওয়ার্ক সমস্যায় কয়েকবার ছাড় দেওয়া)
+    let networkFailures = 0;
+    while (true) {
+      const done = post.targets.every((t) => FINAL_TARGET_STATUSES.includes(t.status));
+      post.targets.forEach((t) => {
+        if (!t.social_account_id || !accountIds.includes(t.social_account_id)) return;
+        onUpdate(t.social_account_id, {
+          status: t.status === 'published' ? 'published' : FINAL_TARGET_STATUSES.includes(t.status) ? 'failed' : 'uploading',
+          progress: t.status === 'queued' ? 5 : Math.max(5, t.progress),
+          url: t.url ?? undefined,
+          error: t.error ?? undefined,
+        });
+      });
+      if (done) return post.id;
+
+      await sleep(3000);
+      try {
+        post = await postsApi.get(post.id);
+        networkFailures = 0;
+      } catch {
+        networkFailures += 1;
+        if (networkFailures >= 20) {
+          return failAll('Lost connection while publishing. Check "Scheduled & Published" later for the result.');
+        }
+      }
+    }
+  };
 
   const startUploadPipeline = (isScheduled: boolean) => {
+    if (pipelineRunningRef.current) return; // দুবার চাপলে দুবার পাবলিশ হবে না
+    pipelineRunningRef.current = true;
+
     setIsUploading(true);
     setUploadProgress(5);
     navigateTo('uploading');
 
-    // Gather effective targets: either selectedAccountIds or platform fallback
     const targetAccounts = accounts.filter(
       (a) => a.connected && (selectedAccountIds.includes(a.id) || selectedPlatforms.includes(a.platform))
     );
+    const serverTargets = targetAccounts.filter((a) => isServerAccount(a.id));
+    const demoTargets = targetAccounts.filter((a) => !isServerAccount(a.id));
 
-    const initialStatuses: Record<string, PlatformUploadStatus> = {};
-    if (targetAccounts.length > 0) {
-      targetAccounts.forEach((acc) => {
-        initialStatuses[acc.id] = {
-          status: 'uploading',
-          progress: 10,
-          accountId: acc.id,
-          accountName: acc.name,
-          accountHandle: acc.handle,
-        };
-      });
-    } else {
+    let statuses: Record<string, PlatformUploadStatus> = {};
+    targetAccounts.forEach((acc) => {
+      statuses[acc.id] = {
+        status: 'uploading',
+        progress: 5,
+        accountId: acc.id,
+        accountName: acc.name,
+        accountHandle: acc.handle,
+      };
+    });
+    if (targetAccounts.length === 0) {
       selectedPlatforms.forEach((p) => {
-        initialStatuses[p] = { status: 'uploading', progress: 10 };
+        statuses[p] = { status: 'uploading', progress: 5 };
       });
     }
-    setPlatformUploadStatus(initialStatuses);
+    setPlatformUploadStatus(statuses);
 
-    // Realistic multi-stage upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 98) {
-          clearInterval(interval);
-          finishUploadPipeline(isScheduled);
-          return 100;
-        }
-        const jump = Math.floor(Math.random() * 14) + 6;
-        const nextVal = Math.min(prev + jump, 98);
+    const update = (key: string, patch: Partial<PlatformUploadStatus>) => {
+      statuses = { ...statuses, [key]: { ...statuses[key], ...patch } as PlatformUploadStatus };
+      setPlatformUploadStatus(statuses);
+    };
 
-        // Update target account intermediate statuses
-        setPlatformUploadStatus((curr) => {
-          const updated = { ...curr };
-          const keys = Object.keys(updated);
-          keys.forEach((key, idx) => {
-            if (nextVal > (idx + 1) * (90 / Math.max(1, keys.length))) {
-              const currentItem = updated[key];
-              if (currentItem?.status !== 'failed') {
-                const acc = accounts.find((a) => a.id === key);
-                const platformKey = acc ? acc.platform : key;
-                updated[key] = {
-                  ...currentItem,
-                  status: 'published',
-                  url: `https://${platformKey}.com/post/ocp_${Date.now()}_${key.slice(-4)}`,
-                  progress: 100,
-                };
-              }
-            }
-          });
-          return updated;
+    const demoKeys = targetAccounts.length > 0 ? demoTargets.map((a) => a.id) : Object.keys(statuses);
+    let demoDone = demoKeys.length === 0;
+    let serverDone = serverTargets.length === 0;
+    let serverPostId: string | null = null;
+    let finished = false;
+
+    const recompute = () => {
+      const values = Object.values(statuses);
+      const avg =
+        values.length === 0
+          ? 100
+          : values.reduce((sum, v) => sum + (v.status === 'published' || v.status === 'failed' ? 100 : v.progress ?? 0), 0) /
+            values.length;
+      setUploadProgress(Math.max(5, Math.min(100, Math.round(avg))));
+
+      if (demoDone && serverDone && !finished) {
+        finished = true;
+        pipelineRunningRef.current = false;
+        finishUploadPipeline(isScheduled, statuses, serverPostId);
+      }
+    };
+
+    // ডেমো প্ল্যাটফর্ম (Facebook, Instagram ...) — আগের মতোই অনুকরণ
+    if (!demoDone) {
+      let progress = 10;
+      const timer = setInterval(() => {
+        progress = Math.min(100, progress + Math.floor(Math.random() * 14) + 6);
+        demoKeys.forEach((key, idx) => {
+          if (statuses[key]?.status !== 'uploading') return;
+          if (progress >= 100 || progress > (idx + 1) * (90 / demoKeys.length)) {
+            const acc = accounts.find((a) => a.id === key);
+            const platformKey = acc ? acc.platform : key;
+            update(key, {
+              status: 'published',
+              url: `https://${platformKey}.com/post/ocp_${Date.now()}_${key.slice(-4)}`,
+              progress: 100,
+            });
+          } else {
+            update(key, { progress });
+          }
         });
+        if (demoKeys.every((key) => statuses[key]?.status !== 'uploading')) {
+          clearInterval(timer);
+          demoDone = true;
+        }
+        recompute();
+      }, 400);
+    }
 
-        return nextVal;
+    // আসল YouTube
+    if (!serverDone) {
+      void runServerPublish(
+        serverTargets.map((a) => a.id),
+        isScheduled,
+        (key, patch) => {
+          update(key, patch);
+          recompute();
+        }
+      ).then((postId) => {
+        serverPostId = postId;
+        serverDone = true;
+        recompute();
       });
-    }, 400);
+    }
+
+    if (demoDone && serverDone) {
+      recompute();
+    }
   };
 
-  const finishUploadPipeline = (isScheduled: boolean) => {
+  const finishUploadPipeline = (
+    isScheduled: boolean,
+    results: Record<string, PlatformUploadStatus>,
+    serverPostId: string | null
+  ) => {
     setIsUploading(false);
     const targetAccounts = accounts.filter(
       (a) => a.connected && (selectedAccountIds.includes(a.id) || selectedPlatforms.includes(a.platform))
     );
 
+    const resultValues = Object.values(results);
+    const publishedCount = resultValues.filter((r) => r.status === 'published').length;
+    const failedCount = resultValues.filter((r) => r.status === 'failed').length;
+    const allFailed = resultValues.length > 0 && publishedCount === 0;
+
     const newPost: PostItem = {
-      id: `post-${Date.now()}`,
-      title: platformSettings.youtube?.title || caption.slice(0, 45) || 'New Video Post',
+      // সার্ভারের ID থাকলে সেটাই (একই ID দুবার হবে না), নইলে এলোমেলো
+      id: serverPostId ? `post-${serverPostId}` : `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: platformSettings.youtube?.title || videoTitle || caption.slice(0, 45) || 'New Video Post',
       caption,
       hashtags,
       videoUrl,
@@ -846,41 +971,49 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       selectedPlatforms,
       selectedAccountIds: targetAccounts.map((a) => a.id),
       platformSettings,
-      status: isScheduled ? 'scheduled' : 'published',
+      status: allFailed ? 'failed' : isScheduled ? 'scheduled' : 'published',
       publishType: isScheduled ? 'schedule' : 'now',
       scheduledDate: isScheduled ? scheduledDate : undefined,
       scheduledTime: isScheduled ? scheduledTime : undefined,
       repeat,
-      platformResults: { ...platformUploadStatus },
+      platformResults: { ...results },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       viewsTotal: 0,
       likesTotal: 0,
     };
 
-    setPosts((prev) => [newPost, ...prev]);
+    setPosts((prev) => [newPost, ...prev.filter((p) => p.id !== newPost.id)]);
     setLastPublishedPost(newPost);
-    setTodayBroadcastsCount((prev) => {
-      const next = prev + 1;
-      localStorage.setItem('ocp_today_broadcasts_count', next.toString());
-      return next;
-    });
+    if (publishedCount > 0) {
+      setTodayBroadcastsCount((prev) => {
+        const next = prev + 1;
+        localStorage.setItem('ocp_today_broadcasts_count', next.toString());
+        return next;
+      });
+    }
 
-    // Notification
     const notif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      type: isScheduled ? 'schedule_reminder' : 'publish_success',
-      title: isScheduled ? 'Post Scheduled Successfully!' : 'Published Successfully!',
-      message: isScheduled
-        ? `Queued for broadcast across ${targetAccounts.length || selectedPlatforms.length} channels on ${scheduledDate} at ${scheduledTime}.`
-        : `Your video was broadcasted to ${targetAccounts.length || selectedPlatforms.length} social channels simultaneously.`,
+      id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      type: allFailed ? 'upload_failed' : isScheduled ? 'schedule_reminder' : 'publish_success',
+      title: allFailed
+        ? 'Publishing Failed'
+        : isScheduled
+        ? 'Post Scheduled Successfully!'
+        : failedCount > 0
+        ? 'Published with some errors'
+        : 'Published Successfully!',
+      message: allFailed
+        ? 'The video could not be published. Open the post to see why.'
+        : isScheduled
+        ? `Queued for broadcast across ${publishedCount} channels on ${scheduledDate} at ${scheduledTime}.`
+        : `Published to ${publishedCount} of ${resultValues.length} channels.`,
       time: 'Just now',
       isRead: false,
       postId: newPost.id,
     };
     setNotifications((prev) => [notif, ...prev]);
 
-    // Go to success screen
     navigateTo('success');
   };
 
@@ -893,6 +1026,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const retryPlatformUpload = (key: string) => {
+    // আসল YouTube চ্যানেল: শুধু সেই চ্যানেলে আবার পাবলিশ
+    if (isServerAccount(key)) {
+      setPlatformUploadStatus((prev) => ({
+        ...prev,
+        [key]: { ...(prev[key] || {}), status: 'uploading', progress: 5, error: undefined },
+      }));
+      void runServerPublish([key], false, (k, patch) =>
+        setPlatformUploadStatus((prev) => ({ ...prev, [k]: { ...(prev[k] || {}), ...patch } as PlatformUploadStatus }))
+      );
+      return;
+    }
+
     setPlatformUploadStatus((prev) => ({
       ...prev,
       [key]: { ...(prev[key] || {}), status: 'uploading', progress: 50 },
