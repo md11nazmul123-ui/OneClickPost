@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, ReactNode } from 'react';
 import {
   ScreenId,
   PlatformId,
@@ -26,6 +26,20 @@ import {
   SAMPLE_VIDEOS,
 } from '../data/initialData';
 import { translations } from '../data/translations';
+import { useAuth } from './AuthContext';
+import {
+  socialApi,
+  toAppAccount,
+  readOAuthReturn,
+  isTrustedGoogleAuthUrl,
+  OAUTH_ERROR_MESSAGES,
+} from '../lib/social-accounts';
+
+/** অ্যাকাউন্ট পেজের উপরে দেখানো বার্তা (কানেক্ট সফল / ব্যর্থ) */
+export interface AccountNotice {
+  type: 'success' | 'error' | 'info';
+  message: string;
+}
 
 interface AppContextType {
   // Navigation
@@ -116,6 +130,10 @@ interface AppContextType {
   confirmOAuthConnect: (p: PlatformId, details?: { handle?: string; accountLabel?: string; accountId?: string }) => void;
   disconnectAccount: (idOrPlatform: string) => void;
   addNewAccount: (platform: PlatformId, handle: string, label: string) => void;
+  refreshConnectedAccounts: () => Promise<void>;
+  connectingPlatform: PlatformId | null;
+  accountNotice: AccountNotice | null;
+  clearAccountNotice: () => void;
 
   // Posts & Drafts
   posts: PostItem[];
@@ -250,16 +268,83 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Accounts
-  const [accounts, setAccounts] = useState<SocialAccount[]>(() => {
+  // YouTube = সার্ভার থেকে আসা আসল চ্যানেল। বাকি প্ল্যাটফর্ম এখনো ডেমো (নিজ নিজ ধাপে আসল হবে)।
+  const [localAccounts, setAccounts] = useState<SocialAccount[]>(() => {
     const saved = localStorage.getItem('ocp_accounts');
     return saved ? JSON.parse(saved) : INITIAL_ACCOUNTS;
   });
+  const [serverAccounts, setServerAccounts] = useState<SocialAccount[]>([]);
+  const [connectingPlatform, setConnectingPlatform] = useState<PlatformId | null>(null);
+  const [accountNotice, setAccountNotice] = useState<AccountNotice | null>(null);
+  const clearAccountNotice = () => setAccountNotice(null);
+
+  const REAL_PLATFORMS: PlatformId[] = ['youtube'];
+  const accounts = useMemo<SocialAccount[]>(
+    () => [
+      ...serverAccounts,
+      // কোনো YouTube চ্যানেল না থাকলে "Connect" দেখানোর জন্য একটা খালি জায়গা
+      ...(serverAccounts.some((a) => a.platform === 'youtube')
+        ? []
+        : [
+            {
+              id: 'youtube-connect',
+              platform: 'youtube' as PlatformId,
+              name: 'YouTube',
+              handle: 'Not Connected',
+              avatar: '',
+              connected: false,
+              followers: '—',
+              postsCount: 0,
+              engagement: '—',
+              tokenExpiresIn: 'Disconnected',
+              accountLabel: 'Main Channel',
+            },
+          ]),
+      ...localAccounts.filter((a) => !REAL_PLATFORMS.includes(a.platform)),
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [serverAccounts, localAccounts]
+  );
+  const isServerAccount = (id: string) => serverAccounts.some((a) => a.id === id);
+
+  const refreshConnectedAccounts = async () => {
+    try {
+      const items = await socialApi.list();
+      setServerAccounts(items.map(toAppAccount));
+    } catch {
+      // নেটওয়ার্ক সমস্যা হলে আগের তালিকা থাকবে
+    }
+  };
+
+  /** আসল YouTube কানেক্ট — Google-এর অফিসিয়াল লগইন পেজে নিয়ে যায় */
+  const connectYouTube = async () => {
+    if (connectingPlatform) return;
+    setConnectingPlatform('youtube');
+    setAccountNotice(null);
+    try {
+      const url = await socialApi.startYouTube();
+      if (!isTrustedGoogleAuthUrl(url)) {
+        throw new Error('Unexpected sign-in address.');
+      }
+      window.location.assign(url);
+    } catch (error) {
+      setConnectingPlatform(null);
+      setAccountNotice({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Could not start YouTube connection.',
+      });
+    }
+  };
 
   const [selectedAccountDetail, setSelectedAccountDetail] = useState<SocialAccount | null>(null);
   const [oauthModalPlatform, setOauthModalPlatform] = useState<PlatformId | null>(null);
   const [oauthTargetAccountId, setOauthTargetAccountId] = useState<string | null>(null);
 
   const openOAuthModal = (p: PlatformId, accountId?: string) => {
+    if (p === 'youtube') {
+      void connectYouTube();
+      return;
+    }
     setOauthModalPlatform(p);
     setOauthTargetAccountId(accountId || null);
   };
@@ -363,6 +448,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const addNewAccount = (platform: PlatformId, handle: string, label: string) => {
+    if (platform === 'youtube') {
+      void connectYouTube();
+      return;
+    }
     const newAccId = `${platform.slice(0, 2)}-${Date.now()}`;
     const newAccount: SocialAccount = {
       id: newAccId,
@@ -393,6 +482,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const disconnectAccount = (idOrPlatform: string) => {
+    const serverTargets = serverAccounts.filter((a) => a.id === idOrPlatform || a.platform === idOrPlatform);
+    if (serverTargets.length > 0) {
+      void (async () => {
+        try {
+          for (const target of serverTargets) {
+            await socialApi.disconnect(target.id);
+          }
+          setSelectedAccountIds((prev) => prev.filter((id) => !serverTargets.some((t) => t.id === id)));
+          if (selectedAccountDetail && serverTargets.some((t) => t.id === selectedAccountDetail.id)) {
+            setSelectedAccountDetail((prev) => (prev ? { ...prev, connected: false } : null));
+          }
+          setAccountNotice({ type: 'info', message: 'Account disconnected.' });
+        } catch (error) {
+          setAccountNotice({
+            type: 'error',
+            message: error instanceof Error ? error.message : 'Could not disconnect the account.',
+          });
+        } finally {
+          await refreshConnectedAccounts();
+        }
+      })();
+      return;
+    }
     setAccounts((prev) => {
       const updated = prev.map((acc) => {
         if (acc.id === idOrPlatform || acc.platform === idOrPlatform) {
@@ -957,6 +1069,61 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.setItem('ocp_today_broadcasts_count', val.toString());
   };
 
+  // লগইন হলে আসল অ্যাকাউন্ট লোড; Google থেকে ফিরে এলে কানেকশন শেষ করা
+  const { status: authStatus } = useAuth();
+  const oauthReturnRef = useRef<ReturnType<typeof readOAuthReturn> | undefined>(undefined);
+  if (oauthReturnRef.current === undefined) {
+    oauthReturnRef.current = readOAuthReturn();
+  }
+
+  useEffect(() => {
+    if (authStatus === 'guest') {
+      setServerAccounts([]);
+      return;
+    }
+    if (authStatus !== 'authenticated') return;
+
+    void (async () => {
+      const oauth = oauthReturnRef.current;
+      oauthReturnRef.current = null; // একবারই
+
+      if (oauth && oauth.platform === 'youtube') {
+        if (oauth.ticket) {
+          try {
+            const account = await socialApi.completeYouTube(oauth.ticket);
+            setAccountNotice({ type: 'success', message: `YouTube channel "${account.account_name}" connected.` });
+            setNotifications((prev) => [
+              {
+                id: `notif-${Date.now()}`,
+                type: 'account_connected',
+                title: 'YouTube Connected',
+                message: `${account.account_name} is ready for publishing.`,
+                time: 'Just now',
+                isRead: false,
+              },
+              ...prev,
+            ]);
+          } catch (error) {
+            setAccountNotice({
+              type: 'error',
+              message: error instanceof Error ? error.message : OAUTH_ERROR_MESSAGES.failed,
+            });
+          }
+        } else {
+          setAccountNotice({
+            type: 'error',
+            message: OAUTH_ERROR_MESSAGES[oauth.error ?? 'failed'] ?? OAUTH_ERROR_MESSAGES.failed,
+          });
+        }
+        setHistoryStack(['dashboard']);
+        setScreen('accounts');
+      }
+
+      await refreshConnectedAccounts();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authStatus]);
+
   return (
     <AppContext.Provider
       value={{
@@ -1033,6 +1200,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         confirmOAuthConnect,
         disconnectAccount,
         addNewAccount,
+        refreshConnectedAccounts,
+        connectingPlatform,
+        accountNotice,
+        clearAccountNotice,
         posts,
         selectedPostDetail,
         setSelectedPostDetail,

@@ -14,6 +14,8 @@ import {
   AlertCircle,
   ExternalLink,
   Layers,
+  Loader2,
+  X,
 } from 'lucide-react';
 
 export const AccountsScreen: React.FC = () => {
@@ -25,6 +27,9 @@ export const AccountsScreen: React.FC = () => {
     goBack,
     t,
     theme,
+    accountNotice,
+    clearAccountNotice,
+    connectingPlatform,
   } = useApp();
 
   const isSmooth = theme === 'smooth' || theme === 'light';
@@ -71,6 +76,54 @@ export const AccountsScreen: React.FC = () => {
           <span className="hidden sm:inline">Connect Channel</span>
         </button>
       </div>
+
+      {/* কানেক্ট সফল / ব্যর্থ বার্তা */}
+      {connectingPlatform && (
+        <div
+          role="status"
+          className={`rounded-2xl px-4 py-3 border flex items-center gap-2.5 text-xs font-semibold ${
+            isSmooth ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-sky-950/60 border-sky-800/70 text-sky-200'
+          }`}
+        >
+          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+          <span>Opening Google sign-in…</span>
+        </div>
+      )}
+      {accountNotice && !connectingPlatform && (
+        <div
+          role={accountNotice.type === 'error' ? 'alert' : 'status'}
+          className={`rounded-2xl px-4 py-3 border flex items-start justify-between gap-3 text-xs font-semibold ${
+            accountNotice.type === 'success'
+              ? isSmooth
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-emerald-950/50 border-emerald-800/70 text-emerald-300'
+              : accountNotice.type === 'error'
+              ? isSmooth
+                ? 'bg-rose-50 border-rose-200 text-rose-800'
+                : 'bg-rose-950/50 border-rose-800/70 text-rose-300'
+              : isSmooth
+              ? 'bg-slate-50 border-slate-200 text-slate-700'
+              : 'bg-slate-900/60 border-slate-700 text-slate-300'
+          }`}
+        >
+          <div className="flex items-start gap-2.5">
+            {accountNotice.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-px" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0 mt-px" />
+            )}
+            <span>{accountNotice.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={clearAccountNotice}
+            aria-label="Dismiss"
+            className="p-0.5 rounded-md opacity-70 hover:opacity-100 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Connect More Banner */}
       <div
