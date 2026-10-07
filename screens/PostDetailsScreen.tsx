@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { THUMB_PLACEHOLDER } from '../lib/placeholders';
 import { useApp } from '../context/AppContext';
 import { PlatformIcon } from '../components/PlatformIcon';
 import {
@@ -77,9 +78,9 @@ export const PostDetailsScreen: React.FC = () => {
         {/* Video Preview */}
         <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black/80 border border-sky-900 relative">
           <video
-            src={post.videoUrl}
+            src={post.videoUrl || undefined}
             controls
-            poster={post.thumbnailUrl}
+            poster={post.thumbnailUrl || THUMB_PLACEHOLDER}
             className="w-full h-full object-cover"
           />
         </div>

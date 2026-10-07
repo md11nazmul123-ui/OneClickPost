@@ -1,4 +1,4 @@
-export type PlatformId = 'youtube' | 'facebook' | 'instagram' | 'tiktok' | 'x' | 'pinterest' | 'linkedin';
+export type PlatformId = 'youtube' | 'facebook' | 'instagram' | 'tiktok';
 
 export type ScreenId = 
   | 'splash'
@@ -15,7 +15,6 @@ export type ScreenId =
   | 'accounts'
   | 'connect'
   | 'accountDetail'
-  | 'analytics'
   | 'scheduled'
   | 'postDetail'
   | 'drafts'
@@ -24,37 +23,11 @@ export type ScreenId =
   | 'notifications'
   | 'language'
   | 'help'
-  | 'about'
-  | 'fullstack'
-  | 'aiRequest'
-  | 'bulk'
-  | 'inbox'
-  | 'cloudImport';
+  | 'about';
 
-export type LanguageCode = 
-  | 'en' 
-  | 'bn' 
-  | 'hi' 
-  | 'ar' 
-  | 'zh' 
-  | 'ja' 
-  | 'ar-eg' 
-  | 'pt' 
-  | 'fa' 
-  | 'ur'
-  | 'ko';
+export type LanguageCode = 'en' | 'bn';
 
 export type ThemeMode = 'night' | 'dark' | 'smooth' | 'light';
-
-export type VideoAspectRatio = 'original' | '9:16' | '16:9' | '1:1' | '4:5';
-export type VideoFitMode = 'cover' | 'contain-blur' | 'contain-black';
-
-export interface VideoFormatSettings {
-  aspectRatio: VideoAspectRatio;
-  fitMode: VideoFitMode;
-  trimRange: [number, number];
-  durationSeconds: number;
-}
 
 export interface SocialAccount {
   id: string;
@@ -69,6 +42,7 @@ export interface SocialAccount {
   tokenExpiresIn?: string;
   scopes?: string[];
   accountLabel?: string; // e.g. "Main Channel", "Gaming Channel", "Brand Page"
+  comingSoon?: boolean; // প্ল্যাটফর্ম এখনো চালু হয়নি (নিজ ধাপে আসল হবে)
 }
 
 export interface PlatformSpecificContent {
@@ -105,7 +79,6 @@ export interface PostItem {
   publishType: 'now' | 'schedule';
   scheduledDate?: string;
   scheduledTime?: string;
-  repeat?: boolean;
   platformResults: Partial<Record<string, PlatformUploadStatus>>; // key can be platform or accountId
   createdAt: string;
   updatedAt: string;

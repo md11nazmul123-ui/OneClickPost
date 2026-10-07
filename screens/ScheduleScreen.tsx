@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Calendar as CalendarIcon,
   Clock,
-  Repeat,
   Send,
   Sparkles,
   ChevronLeft,
@@ -20,28 +19,45 @@ export const ScheduleScreen: React.FC = () => {
     setScheduledDate,
     scheduledTime,
     setScheduledTime,
-    repeat,
-    setRepeat,
     publishPostNow,
     schedulePostNow,
     goBack,
     t,
+    posts,
   } = useApp();
 
-  const [currentMonthIndex, setCurrentMonthIndex] = useState(8); // September (0-indexed)
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [selectedDay, setSelectedDay] = useState(26);
+  // বেছে নেওয়া তারিখ থেকে মাস/বছর (না থাকলে আজ)
+  const initial = (() => {
+    const [y, m, d] = scheduledDate.split('-').map(Number);
+    if (y && m && d) return { year: y, month: m - 1, day: d };
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
+  })();
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(initial.month);
+  const [currentYear, setCurrentYear] = useState(initial.year);
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  const daysInMonth = 30; // September has 30 days
-  const startingDayOffset = 2; // Tuesday start for Sep 2026
+  const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
+  const startingDayOffset = new Date(currentYear, currentMonthIndex, 1).getDay();
+
+  // যে দিনগুলোতে আগে থেকে পোস্ট শিডিউল করা আছে
+  const scheduledDays = new Set(
+    posts
+      .filter((p) => p.status === 'scheduled' && p.scheduledDate)
+      .map((p) => p.scheduledDate as string)
+  );
+
+  const changeMonth = (delta: number) => {
+    const next = new Date(currentYear, currentMonthIndex + delta, 1);
+    setCurrentYear(next.getFullYear());
+    setCurrentMonthIndex(next.getMonth());
+  };
 
   const handleDaySelect = (dayNum: number) => {
-    setSelectedDay(dayNum);
     const dayStr = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
     const monthStr = currentMonthIndex + 1 < 10 ? `0${currentMonthIndex + 1}` : `${currentMonthIndex + 1}`;
     setScheduledDate(`${currentYear}-${monthStr}-${dayStr}`);
@@ -79,14 +95,14 @@ export const ScheduleScreen: React.FC = () => {
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setCurrentMonthIndex((m) => Math.max(0, m - 1))}
+              onClick={() => changeMonth(-1)}
               className="p-2 rounded-xl bg-[#051428] border border-sky-900 text-slate-300 hover:text-white"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               type="button"
-              onClick={() => setCurrentMonthIndex((m) => Math.min(11, m + 1))}
+              onClick={() => changeMonth(1)}
               className="p-2 rounded-xl bg-[#051428] border border-sky-900 text-slate-300 hover:text-white"
             >
               <ChevronRight className="w-4 h-4" />
@@ -115,8 +131,9 @@ export const ScheduleScreen: React.FC = () => {
           {/* Actual days */}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const dayNum = i + 1;
-            const isSelected = selectedDay === dayNum;
-            const hasEvent = [5, 12, 21, 26].includes(dayNum);
+            const dateKey = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+            const isSelected = scheduledDate === dateKey;
+            const hasEvent = scheduledDays.has(dateKey);
 
             return (
               <button
@@ -159,42 +176,12 @@ export const ScheduleScreen: React.FC = () => {
               Target Timezone
             </label>
             <div className="px-3.5 py-2.5 rounded-xl bg-[#030d1d] border border-sky-900 text-xs text-slate-300 font-mono flex items-center justify-between">
-              <span>Asia/Dhaka (GMT+6)</span>
+              <span>{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
               <span className="text-cyan-400 font-bold">Auto</span>
             </div>
           </div>
         </div>
 
-        {/* Repeat Toggle */}
-        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#041122] border border-sky-900/60">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-sky-950 text-cyan-400">
-              <Repeat className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-white block">
-                {t('repeatOptional')}
-              </span>
-              <span className="text-[11px] text-slate-400">
-                Automatically repost or repeat broadcast schedule
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setRepeat(!repeat)}
-            className={`w-12 h-6.5 rounded-full p-1 transition-colors relative flex items-center cursor-pointer ${
-              repeat ? 'bg-cyan-500' : 'bg-slate-800'
-            }`}
-          >
-            <div
-              className={`w-4.5 h-4.5 rounded-full bg-white transition-transform shadow-md ${
-                repeat ? 'translate-x-5.5' : 'translate-x-0'
-              }`}
-            />
-          </button>
-        </div>
       </div>
 
       {/* Action Buttons: Schedule Post OR Publish Now */}

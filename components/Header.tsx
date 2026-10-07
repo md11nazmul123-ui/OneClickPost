@@ -1,32 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { AppLogo } from './AppLogo';
 import { LanguageCode, ThemeMode } from '../types';
-import { Bell, Globe, Sparkles, Moon, Sun, Shield, Check, Search, Command } from 'lucide-react';
-import { SearchModal } from './SearchModal';
+import { Bell, Globe, Check } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const { screen, navigateTo, language, setLanguage, unreadNotifsCount, user, theme, setTheme, toggleTheme } = useApp();
+  const { screen, navigateTo, language, setLanguage, unreadNotifsCount, user, theme, setTheme } = useApp();
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
 
   const isSmooth = theme === 'smooth' || theme === 'light';
-
-  // Global keyboard shortcut (Ctrl+K or Cmd+K) to open Search Bar
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setShowSearchModal((prev) => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
 
   // Hide header on splash, welcome and auth screens for clean native hero look
   if (screen === 'splash' || screen === 'welcome' || screen === 'login' || screen === 'register') {
@@ -36,15 +21,6 @@ export const Header: React.FC = () => {
   const languages: { code: LanguageCode; label: string; flag: string }[] = [
     { code: 'en', label: 'English', flag: '🇺🇸' },
     { code: 'bn', label: 'বাংলা (Bengali)', flag: '🇧🇩' },
-    { code: 'zh', label: '中文 (Chinese)', flag: '🇨🇳' },
-    { code: 'ja', label: '日本語 (Japanese)', flag: '🇯🇵' },
-    { code: 'ar-eg', label: 'مصر (Egyptian Ar)', flag: '🇪🇬' },
-    { code: 'pt', label: 'Português (Portugal)', flag: '🇵🇹' },
-    { code: 'fa', label: 'فারسی (Iran)', flag: '🇮🇷' },
-    { code: 'ur', label: 'اردو (Pakistan)', flag: '🇵🇰' },
-    { code: 'ko', label: '한국어 (Korean)', flag: '🇰🇷' },
-    { code: 'hi', label: 'हिन्दी (Hindi)', flag: '🇮🇳' },
-    { code: 'ar', label: 'العربية (Standard)', flag: '🇸🇦' },
   ];
 
   const themeOptions: { id: ThemeMode; label: string; bnLabel: string; icon: string; desc: string }[] = [
@@ -98,13 +74,6 @@ export const Header: React.FC = () => {
               }`}>
                 OneClickPost
               </span>
-              <span className={`hidden sm:inline-flex items-center gap-0.5 text-[10px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-full ${
-                isSmooth
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm'
-                  : 'bg-cyan-950 text-cyan-400 border border-cyan-700/50 shadow-sm shadow-cyan-950/40'
-              }`}>
-                <Sparkles className="w-2.5 h-2.5" /> PRO
-              </span>
             </div>
             <p className={`text-[11px] font-medium hidden sm:block ${
               isSmooth ? 'text-slate-600' : 'text-slate-400'
@@ -114,49 +83,8 @@ export const Header: React.FC = () => {
           </div>
         </button>
 
-        {/* Search Bar Pill for Laptops, Desktops and Tablets */}
-        <button
-          type="button"
-          onClick={() => setShowSearchModal(true)}
-          className={`hidden md:flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl text-xs transition-all shadow-inner cursor-pointer max-w-sm w-56 lg:w-72 group ${
-            isSmooth
-              ? 'bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700'
-              : 'bg-[#030d1d] hover:bg-[#071d3a] border border-sky-800/80 hover:border-cyan-500/70 text-slate-300'
-          }`}
-          title="Search posts, analytics, accounts, tags... (Ctrl+K)"
-        >
-          <Search className={`w-3.5 h-3.5 group-hover:scale-110 transition-transform shrink-0 ${
-            isSmooth ? 'text-blue-600' : 'text-cyan-400'
-          }`} />
-          <span className={`text-xs truncate ${
-            isSmooth ? 'text-slate-500 group-hover:text-slate-900' : 'text-slate-400 group-hover:text-slate-200'
-          }`}>
-            Search posts, analytics, accounts...
-          </span>
-          <kbd className={`ml-auto px-1.5 py-0.5 rounded-md border font-mono text-[10px] shrink-0 ${
-            isSmooth ? 'bg-white border-slate-300 text-slate-500' : 'bg-slate-900 border-slate-700 text-slate-400'
-          }`}>
-            ⌘K
-          </kbd>
-        </button>
-
         {/* Right Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Mobile & Tablet Search Bar Icon */}
-          <button
-            type="button"
-            onClick={() => setShowSearchModal(true)}
-            className={`md:hidden p-1.5 sm:p-2 rounded-xl border transition-colors cursor-pointer ${
-              isSmooth
-                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-                : 'bg-[#07172b] hover:bg-[#0c2442] border-sky-900/60 text-cyan-300 hover:text-white'
-            }`}
-            title="Search posts, analytics & platforms"
-            aria-label="Open search bar"
-          >
-            <Search className="w-4 h-4" />
-          </button>
-
           {/* Language Switcher */}
           <div className="relative">
             <button
@@ -336,11 +264,17 @@ export const Header: React.FC = () => {
             }`}
             title="Profile"
           >
-            <img
-              src={user.avatar}
-              alt={user.name}
-              className="w-6 h-6 rounded-lg object-cover ring-1 ring-cyan-500/50"
-            />
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="w-6 h-6 rounded-lg object-cover ring-1 ring-cyan-500/50"
+              />
+            ) : (
+              <span className="w-6 h-6 rounded-lg grid place-items-center bg-blue-600 text-white text-[11px] font-bold">
+                {(user.name || '?').charAt(0).toUpperCase()}
+              </span>
+            )}
             <span className={`text-xs font-bold max-w-[80px] truncate hidden md:inline ${
               isSmooth ? 'text-slate-800 group-hover:text-blue-600' : 'text-slate-200 group-hover:text-cyan-300'
             }`}>
@@ -350,11 +284,6 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Universal Search Modal (Spotlight / Omnibar) */}
-      <SearchModal
-        isOpen={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
-      />
     </header>
   );
 };

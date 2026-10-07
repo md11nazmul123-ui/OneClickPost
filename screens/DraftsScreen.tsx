@@ -60,7 +60,7 @@ export const DraftsScreen: React.FC = () => {
               >
                 <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-black shrink-0 border border-sky-900">
                   <img
-                    src={draft.thumbnailUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80'}
+                    src={draft.thumbnailUrl || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'%3E%3Crect width='160' height='90' fill='%23cbd5e1'/%3E%3Cpath d='M70 32v26l22-13z' fill='%23ffffff'/%3E%3C/svg%3E"}
                     alt={draft.title}
                     className="w-full h-full object-cover"
                   />

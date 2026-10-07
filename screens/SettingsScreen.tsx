@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { LanguageCode, ScreenId } from '../types';
@@ -13,12 +13,7 @@ import {
   Info,
   LogOut,
   ChevronRight,
-  Sparkles,
   Check,
-  Languages,
-  Target,
-  Minus,
-  Plus,
 } from 'lucide-react';
 
 export const SettingsScreen: React.FC = () => {
@@ -30,9 +25,6 @@ export const SettingsScreen: React.FC = () => {
     theme,
     setTheme,
     t,
-    dailyBroadcastGoal,
-    setDailyBroadcastGoal,
-    todayBroadcastsCount,
   } = useApp();
   const { logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -45,41 +37,6 @@ export const SettingsScreen: React.FC = () => {
   };
 
   const isSmooth = theme === 'smooth' || theme === 'light';
-  const [showAllLanguages, setShowAllLanguages] = useState(false);
-  const [goalInputVal, setGoalInputVal] = useState<string>(dailyBroadcastGoal.toString());
-
-  useEffect(() => {
-    setGoalInputVal(dailyBroadcastGoal.toString());
-  }, [dailyBroadcastGoal]);
-
-  const presetGoals = [2, 3, 5, 8, 10];
-  const target = Math.max(1, dailyBroadcastGoal);
-  const completed = Math.max(0, todayBroadcastsCount);
-  const remaining = Math.max(0, target - completed);
-  const progressPercent = Math.min(100, Math.round((completed / target) * 100));
-
-  const handleGoalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setGoalInputVal(val);
-    const parsed = parseInt(val, 10);
-    if (!isNaN(parsed) && parsed >= 1 && parsed <= 50) {
-      setDailyBroadcastGoal(parsed);
-    }
-  };
-
-  const handleGoalBlur = () => {
-    const parsed = parseInt(goalInputVal, 10);
-    if (isNaN(parsed) || parsed < 1) {
-      setDailyBroadcastGoal(1);
-      setGoalInputVal('1');
-    } else if (parsed > 50) {
-      setDailyBroadcastGoal(50);
-      setGoalInputVal('50');
-    } else {
-      setDailyBroadcastGoal(parsed);
-    }
-  };
-
   const supportedLanguages: {
     code: LanguageCode;
     label: string;
@@ -89,15 +46,6 @@ export const SettingsScreen: React.FC = () => {
   }[] = [
     { code: 'en', label: 'English', native: 'English', flag: '🇺🇸', country: 'Global' },
     { code: 'bn', label: 'Bengali', native: 'বাংলা', flag: '🇧🇩', country: 'Bangladesh' },
-    { code: 'zh', label: 'Chinese', native: '中文 (简体)', flag: '🇨🇳', country: 'China' },
-    { code: 'ja', label: 'Japanese', native: '日本語', flag: '🇯🇵', country: 'Japan' },
-    { code: 'ar-eg', label: 'Egyptian Arabic', native: 'العربية (مصر)', flag: '🇪🇬', country: 'Egypt' },
-    { code: 'pt', label: 'Portuguese', native: 'Português', flag: '🇵🇹', country: 'Portugal' },
-    { code: 'fa', label: 'Persian', native: 'فارسی', flag: '🇮🇷', country: 'Iran' },
-    { code: 'ur', label: 'Urdu', native: 'اردو', flag: '🇵🇰', country: 'Pakistan' },
-    { code: 'ko', label: 'Korean', native: '한국어', flag: '🇰🇷', country: 'Korea' },
-    { code: 'hi', label: 'Hindi', native: 'हिन्दी', flag: '🇮🇳', country: 'India' },
-    { code: 'ar', label: 'Arabic (Standard)', native: 'العربية', flag: '🇸🇦', country: 'Arab World' },
   ];
 
   const currentLang = supportedLanguages.find((l) => l.code === language) || supportedLanguages[0];
@@ -113,12 +61,6 @@ export const SettingsScreen: React.FC = () => {
       label: t('profile'),
       icon: <User className="w-5 h-5 text-cyan-400" />,
       subtitle: t('profileDesc'),
-    },
-    {
-      id: 'aiRequest',
-      label: 'AI Feature Access Request',
-      icon: <Sparkles className="w-5 h-5 text-yellow-400" />,
-      subtitle: 'Next.js + Laravel API + Redis Rate Limiter',
     },
     {
       id: 'notifications',
@@ -161,179 +103,6 @@ export const SettingsScreen: React.FC = () => {
           <p className={`text-xs ${isSmooth ? 'text-slate-600' : 'text-slate-400'}`}>
             {t('settingsDesc')}
           </p>
-        </div>
-      </div>
-
-      {/* Daily Broadcast Target Settings Card */}
-      <div
-        className={`rounded-3xl p-5 border transition-all ${
-          isSmooth
-            ? 'bg-white border-slate-200/90 shadow-[0_2px_12px_rgba(15,23,42,0.05)]'
-            : 'glass-card border-sky-800/70 shadow-2xl'
-        }`}
-      >
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div
-              className={`p-2.5 rounded-xl border ${
-                isSmooth
-                  ? 'bg-blue-50 text-blue-700 border-blue-200'
-                  : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
-              }`}
-            >
-              <Target className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className={`text-sm font-bold ${isSmooth ? 'text-slate-950' : 'text-white'}`}>
-                  Daily Broadcast Goal
-                </h3>
-                <span
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full border font-bold ${
-                    isSmooth
-                      ? 'bg-blue-50 text-blue-800 border-blue-200'
-                      : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/60'
-                  }`}
-                >
-                  {target} Posts / Day
-                </span>
-              </div>
-              <p className={`text-[11px] ${isSmooth ? 'text-slate-600' : 'text-slate-400'}`}>
-                Set how many broadcasts you aim to publish across social networks every day.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Input Field & Stepper Controls */}
-        <div
-          className={`p-4 rounded-2xl border space-y-3 ${
-            isSmooth ? 'bg-slate-50 border-slate-200' : 'bg-[#040f21] border-sky-900/60'
-          }`}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <label className={`text-xs font-bold ${isSmooth ? 'text-slate-800' : 'text-slate-200'}`}>
-              Target Posts per Day:
-            </label>
-            <div className="flex items-center gap-2">
-              <div
-                className={`flex items-center rounded-xl border shadow-sm ${
-                  isSmooth ? 'bg-white border-slate-300' : 'bg-[#07172b] border-sky-800'
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (target > 1) {
-                      setDailyBroadcastGoal(target - 1);
-                      setGoalInputVal((target - 1).toString());
-                    }
-                  }}
-                  disabled={target <= 1}
-                  className={`p-1.5 rounded-l-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors ${
-                    isSmooth ? 'text-slate-700' : 'text-slate-200'
-                  }`}
-                  title="Decrease target by 1"
-                >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={goalInputVal}
-                  onChange={handleGoalChange}
-                  onBlur={handleGoalBlur}
-                  className={`w-14 text-center text-sm font-mono font-bold bg-transparent outline-none py-1.5 ${
-                    isSmooth ? 'text-slate-950' : 'text-white'
-                  }`}
-                  title="Daily post goal input"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (target < 50) {
-                      setDailyBroadcastGoal(target + 1);
-                      setGoalInputVal((target + 1).toString());
-                    }
-                  }}
-                  disabled={target >= 50}
-                  className={`p-1.5 rounded-r-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors ${
-                    isSmooth ? 'text-slate-700' : 'text-slate-200'
-                  }`}
-                  title="Increase target by 1"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <span className={`text-xs font-semibold ${isSmooth ? 'text-slate-600' : 'text-slate-400'}`}>
-                posts
-              </span>
-            </div>
-          </div>
-
-          {/* Quick Preset Buttons */}
-          <div className="flex items-center gap-2 flex-wrap pt-1">
-            <span className={`text-[11px] font-medium ${isSmooth ? 'text-slate-500' : 'text-slate-400'}`}>
-              Presets:
-            </span>
-            {presetGoals.map((p) => {
-              const active = target === p;
-              return (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => {
-                    setDailyBroadcastGoal(p);
-                    setGoalInputVal(p.toString());
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                    active
-                      ? isSmooth
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                        : 'bg-cyan-500 text-slate-950 border-cyan-400 font-extrabold shadow-md'
-                      : isSmooth
-                      ? 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700'
-                      : 'bg-[#071a33] hover:bg-[#0c294d] border-sky-900/60 text-slate-300'
-                  }`}
-                >
-                  {p} posts
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Live Progress Bar toward Target */}
-          <div className="pt-2 border-t border-slate-200 dark:border-sky-900/40">
-            <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className={`font-semibold ${isSmooth ? 'text-slate-700' : 'text-slate-300'}`}>
-                Today's Progress: {completed} of {target} posts
-              </span>
-              <span
-                className={`font-mono font-bold ${
-                  completed >= target
-                    ? isSmooth ? 'text-emerald-700' : 'text-emerald-400'
-                    : isSmooth ? 'text-blue-700' : 'text-cyan-400'
-                }`}
-              >
-                {progressPercent}% {completed >= target ? '✓ Achieved' : `(${remaining} left)`}
-              </span>
-            </div>
-            <div
-              className={`w-full h-2.5 rounded-full overflow-hidden p-0.5 border ${
-                isSmooth ? 'bg-slate-200 border-slate-300' : 'bg-[#040e1d] border-sky-950'
-              }`}
-            >
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  completed >= target
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
-                    : 'bg-gradient-to-r from-cyan-500 to-blue-600'
-                }`}
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -552,23 +321,11 @@ export const SettingsScreen: React.FC = () => {
               </p>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setShowAllLanguages(!showAllLanguages)}
-            className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-colors cursor-pointer ${
-              isSmooth
-                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
-                : 'bg-sky-950 hover:bg-sky-900 border-sky-800 text-cyan-400'
-            }`}
-          >
-            {showAllLanguages ? 'Compact' : 'View All (11)'}
-          </button>
         </div>
 
         {/* Quick Language Select Pills */}
         <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 pt-1">
-          {(showAllLanguages ? supportedLanguages : supportedLanguages.slice(0, 6)).map((lang) => {
+          {supportedLanguages.map((lang) => {
             const isSelected = language === lang.code;
             return (
               <button
@@ -611,25 +368,6 @@ export const SettingsScreen: React.FC = () => {
               </button>
             );
           })}
-        </div>
-
-        {/* Dedicated Full Language Screen link */}
-        <div className={`pt-2 border-t flex items-center justify-between text-[11px] ${
-          isSmooth ? 'border-slate-200 text-slate-600' : 'border-sky-950 text-slate-400'
-        }`}>
-          <span className="flex items-center gap-1.5">
-            <Languages className={`w-3.5 h-3.5 ${isSmooth ? 'text-blue-600' : 'text-cyan-400'}`} />
-            <span>Includes Bengali (বাংলা), Korean, Chinese, Japanese, etc.</span>
-          </span>
-          <button
-            type="button"
-            onClick={() => navigateTo('language')}
-            className={`font-bold transition-colors cursor-pointer ${
-              isSmooth ? 'text-blue-700 hover:text-blue-800' : 'text-cyan-400 hover:text-cyan-300'
-            }`}
-          >
-            Language Details →
-          </button>
         </div>
       </div>
 

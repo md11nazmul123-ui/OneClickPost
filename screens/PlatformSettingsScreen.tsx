@@ -78,17 +78,17 @@ export const PlatformSettingsScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowPreviewModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/70 border border-cyan-700/80 text-cyan-300 text-xs font-bold transition-all shadow-md shadow-cyan-950/40 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
             title="Preview how customized captions look on each platform"
           >
-            <Eye className="w-3.5 h-3.5 text-cyan-400" />
+            <Eye className="w-3.5 h-3.5 text-white" />
             <span>Preview Post</span>
           </button>
 
           {/* Apply to All Action */}
           <button
             onClick={handleApplyToAll}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-800 text-purple-300 text-xs font-bold transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
             title="Sync caption and hashtags to all selected platforms"
           >
             <Copy className="w-3.5 h-3.5" />
@@ -254,25 +254,6 @@ export const PlatformSettingsScreen: React.FC = () => {
                   updatePlatformSetting('tiktok', { caption: e.target.value })
                 }
                 placeholder="Viral short caption with #fyp..."
-                className="w-full p-3.5 rounded-xl bg-[#030d1d] border border-sky-900 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 resize-none"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* X, Pinterest, LinkedIn */}
-        {(currentPlatform === 'x' || currentPlatform === 'pinterest' || currentPlatform === 'linkedin') && (
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-bold text-slate-300 block mb-1.5 capitalize">
-                {currentPlatform} Caption
-              </label>
-              <textarea
-                rows={3}
-                value={currentSetting.caption || caption}
-                onChange={(e) =>
-                  updatePlatformSetting(currentPlatform, { caption: e.target.value })
-                }
                 className="w-full p-3.5 rounded-xl bg-[#030d1d] border border-sky-900 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 resize-none"
               />
             </div>

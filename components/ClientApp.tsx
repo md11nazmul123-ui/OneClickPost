@@ -13,7 +13,6 @@ import { MediaUploadProvider } from '../context/MediaUploadContext';
 import { AuthGate } from './AuthGate';
 import { Header } from '../components/Header';
 import { BottomNav } from '../components/BottomNav';
-import { OAuthModal } from '../components/OAuthModal';
 
 // Screens
 import { SplashScreen } from '../screens/SplashScreen';
@@ -30,7 +29,6 @@ import { PublishSuccessScreen } from '../screens/PublishSuccessScreen';
 import { AccountsScreen } from '../screens/AccountsScreen';
 import { ConnectAccountScreen } from '../screens/ConnectAccountScreen';
 import { AccountDetailScreen } from '../screens/AccountDetailScreen';
-import { AnalyticsScreen } from '../screens/AnalyticsScreen';
 import { ScheduledPostsScreen } from '../screens/ScheduledPostsScreen';
 import { PostDetailsScreen } from '../screens/PostDetailsScreen';
 import { DraftsScreen } from '../screens/DraftsScreen';
@@ -40,10 +38,6 @@ import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { LanguageScreen } from '../screens/LanguageScreen';
 import { HelpSupportScreen } from '../screens/HelpSupportScreen';
 import { AboutScreen } from '../screens/AboutScreen';
-import { AIRequestScreen } from '../screens/AIRequestScreen';
-import { BulkUploadScreen } from '../screens/BulkUploadScreen';
-import { InboxScreen } from '../screens/InboxScreen';
-import { CloudImportScreen } from '../screens/CloudImportScreen';
 
 // এই অ্যাপটা মূলত একটা স্টেট-ড্রাইভেন SPA (URL রুট নয়, context-এ রাখা
 // `screen` state দিয়ে স্ক্রিন বদলায়) — তাই কনভার্সনে সেই একই প্যাটার্ন
@@ -106,8 +100,6 @@ const MainRouter: React.FC = () => {
         return <ConnectAccountScreen />;
       case 'accountDetail':
         return <AccountDetailScreen />;
-      case 'analytics':
-        return <AnalyticsScreen />;
       case 'scheduled':
         return <ScheduledPostsScreen />;
       case 'postDetail':
@@ -126,16 +118,6 @@ const MainRouter: React.FC = () => {
         return <HelpSupportScreen />;
       case 'about':
         return <AboutScreen />;
-      case 'fullstack':
-        return <AnalyticsScreen />;
-      case 'aiRequest':
-        return <AIRequestScreen />;
-      case 'bulk':
-        return <BulkUploadScreen />;
-      case 'inbox':
-        return <InboxScreen />;
-      case 'cloudImport':
-        return <CloudImportScreen />;
       default:
         return <DashboardScreen />;
     }
@@ -151,31 +133,11 @@ const MainRouter: React.FC = () => {
         isLightOrSmooth ? 'bg-[#f8fafc] text-slate-950' : 'bg-[#020713] text-slate-100'
       } selection:bg-cyan-500 selection:text-black font-sans antialiased flex flex-col transition-colors duration-300`}
     >
-      <svg
-        id="app-brand-gradients"
-        aria-hidden="true"
-        className="sr-only absolute w-0 h-0 overflow-hidden pointer-events-none"
-        style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }}
-      >
-        <defs>
-          <linearGradient id="brandGradUnified" x1="10" y1="7.5" x2="15" y2="12.5" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#00F0FF" />
-            <stop offset="1" stopColor="#A855F7" />
-          </linearGradient>
-          <linearGradient id="brandGradHolo" x1="0" y1="0" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#EC4899" />
-            <stop offset="50%" stopColor="#9333EA" />
-            <stop offset="100%" stopColor="#06B6D4" />
-          </linearGradient>
-        </defs>
-      </svg>
-
       <Header />
       <main className="flex-1 w-full overflow-auto" ref={mainRef}>
         {renderScreen()}
       </main>
       <BottomNav isVisible={isNavVisible} />
-      <OAuthModal />
     </div>
   );
 };

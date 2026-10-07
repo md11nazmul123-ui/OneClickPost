@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import { AVATAR_PLACEHOLDER } from '../lib/placeholders';
 import { useApp } from '../context/AppContext';
 import { PlatformIcon } from '../components/PlatformIcon';
 import { PlatformId } from '../types';
-import { AddChannelModal } from '../components/AddChannelModal';
 import { ArrowLeft, ArrowRight, Check, AlertCircle, Plus, Users } from 'lucide-react';
 
 export const SelectPlatformsScreen: React.FC = () => {
@@ -24,16 +24,12 @@ export const SelectPlatformsScreen: React.FC = () => {
   } = useApp();
 
   const isSmooth = theme === 'smooth' || theme === 'light';
-  const [addChannelPlatform, setAddChannelPlatform] = useState<PlatformId | null>(null);
 
   const allSupported: { id: PlatformId; name: string }[] = [
     { id: 'youtube', name: 'YouTube' },
     { id: 'facebook', name: 'Facebook' },
     { id: 'instagram', name: 'Instagram' },
     { id: 'tiktok', name: 'TikTok' },
-    { id: 'x', name: 'X (Twitter)' },
-    { id: 'pinterest', name: 'Pinterest' },
-    { id: 'linkedin', name: 'LinkedIn' },
   ];
 
   const totalConnectedChannels = accounts.filter((a) => a.connected).length;
@@ -114,6 +110,7 @@ export const SelectPlatformsScreen: React.FC = () => {
           const connectedAccounts = platformAccounts.filter((a) => a.connected);
           const isPlatformActive = selectedPlatforms.includes(item.id);
           const hasConnected = connectedAccounts.length > 0;
+          const comingSoon = platformAccounts.some((a) => a.comingSoon);
 
           return (
             <div
@@ -136,13 +133,14 @@ export const SelectPlatformsScreen: React.FC = () => {
               <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
                 <div
                   onClick={() => {
+                    if (comingSoon) return;
                     if (!hasConnected) {
                       openOAuthModal(item.id);
                     } else {
                       togglePlatform(item.id);
                     }
                   }}
-                  className="flex items-center gap-3.5 cursor-pointer flex-1"
+                  className={`flex items-center gap-3.5 flex-1 ${comingSoon ? 'cursor-default' : 'cursor-pointer'}`}
                 >
                   <PlatformIcon platform={item.id} size="md" />
                   <div>
@@ -169,13 +167,15 @@ export const SelectPlatformsScreen: React.FC = () => {
                               : 'text-slate-500 bg-slate-900 border-slate-800'
                           }`}
                         >
-                          {t('notConnected')}
+                          {comingSoon ? 'Coming soon' : t('notConnected')}
                         </span>
                       )}
                     </div>
                     <p className={`text-xs mt-0.5 ${isSmooth ? 'text-slate-600' : 'text-slate-400'}`}>
                       {hasConnected
                         ? `${connectedAccounts.length} account${connectedAccounts.length > 1 ? 's' : ''} available • Click to toggle all`
+                        : comingSoon
+                        ? 'Will be available in a future update'
                         : 'Link via official OAuth'}
                     </p>
                   </div>
@@ -188,7 +188,7 @@ export const SelectPlatformsScreen: React.FC = () => {
                       {/* Add Another Channel / Account button */}
                       <button
                         type="button"
-                        onClick={() => setAddChannelPlatform(item.id)}
+                        onClick={() => openOAuthModal(item.id)}
                         className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
                           isSmooth
                             ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
@@ -218,7 +218,7 @@ export const SelectPlatformsScreen: React.FC = () => {
                         />
                       </button>
                     </>
-                  ) : (
+                  ) : comingSoon ? null : (
                     <button
                       type="button"
                       onClick={() => openOAuthModal(item.id)}
@@ -272,7 +272,7 @@ export const SelectPlatformsScreen: React.FC = () => {
                         >
                           <div className="flex items-center gap-2.5 overflow-hidden">
                             <img
-                              src={acc.avatar}
+                              src={acc.avatar || AVATAR_PLACEHOLDER}
                               alt={acc.name}
                               className="w-8 h-8 rounded-full object-cover ring-1 ring-cyan-500/40 shrink-0"
                             />
@@ -343,15 +343,6 @@ export const SelectPlatformsScreen: React.FC = () => {
         </span>
         <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
       </button>
-
-      {/* Add Additional Channel Modal */}
-      {addChannelPlatform && (
-        <AddChannelModal
-          isOpen={Boolean(addChannelPlatform)}
-          platform={addChannelPlatform}
-          onClose={() => setAddChannelPlatform(null)}
-        />
-      )}
     </div>
   );
 };

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Home, PlusCircle, Calendar, BarChart3, Users2 } from 'lucide-react';
+import { Home, PlusCircle, Calendar, FileEdit, Users2 } from 'lucide-react';
 import { ScreenId } from '../types';
 
 export const BottomNav: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
@@ -35,15 +35,15 @@ export const BottomNav: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
     },
     {
       id: 'scheduled',
-      label: t('schedule'),
+      label: t('posts'),
       icon: <Calendar className="w-5 h-5" />,
-      matchScreens: ['scheduled', 'schedule', 'postDetail'],
+      matchScreens: ['scheduled', 'schedule', 'postDetail', 'success'],
     },
     {
-      id: 'analytics',
-      label: t('analytics'),
-      icon: <BarChart3 className="w-5 h-5" />,
-      matchScreens: ['analytics'],
+      id: 'drafts',
+      label: t('drafts'),
+      icon: <FileEdit className="w-5 h-5" />,
+      matchScreens: ['drafts'],
     },
     {
       id: 'accounts',

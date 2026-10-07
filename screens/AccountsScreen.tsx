@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
 import { PlatformIcon } from '../components/PlatformIcon';
-import { SocialAccount, PlatformId } from '../types';
-import { AddChannelModal } from '../components/AddChannelModal';
+import { SocialAccount } from '../types';
 import {
   ArrowLeft,
   Plus,
@@ -33,7 +32,6 @@ export const AccountsScreen: React.FC = () => {
   } = useApp();
 
   const isSmooth = theme === 'smooth' || theme === 'light';
-  const [addChannelPlatform, setAddChannelPlatform] = useState<PlatformId | null>(null);
 
   const handleSelectAccount = (acc: SocialAccount) => {
     setSelectedAccountDetail(acc);
@@ -145,7 +143,7 @@ export const AccountsScreen: React.FC = () => {
               {t('connectMoreAccounts')}
             </h3>
             <p className={`text-xs mt-0.5 ${isSmooth ? 'text-slate-600' : 'text-slate-300'}`}>
-              Add second YouTube channel, client Facebook page, or TikTok profile.
+              Connect your YouTube channel. Facebook, Instagram and TikTok are coming soon.
             </p>
           </div>
         </div>
@@ -218,7 +216,7 @@ export const AccountsScreen: React.FC = () => {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setAddChannelPlatform(acc.platform);
+                    openOAuthModal(acc.platform);
                   }}
                   className={`hidden md:flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-colors cursor-pointer ${
                     isSmooth
@@ -264,7 +262,7 @@ export const AccountsScreen: React.FC = () => {
             {unconnectedAccounts.map((acc) => (
               <div
                 key={acc.id}
-                onClick={() => openOAuthModal(acc.platform, acc.id)}
+                onClick={() => !acc.comingSoon && openOAuthModal(acc.platform, acc.id)}
                 className={`p-4 rounded-2xl border flex items-center justify-between gap-4 cursor-pointer transition-all ${
                   isSmooth
                     ? 'bg-white hover:bg-slate-50/80 border-slate-200/90 hover:border-slate-300 shadow-[0_1px_3px_rgba(0,0,0,0.03)]'
@@ -293,11 +291,20 @@ export const AccountsScreen: React.FC = () => {
                     <span className={`text-xs block mt-0.5 ${
                       isSmooth ? 'text-slate-600 font-medium' : 'text-slate-500'
                     }`}>
-                      Connect via official OAuth
+                      {acc.comingSoon ? 'Coming soon — available in a future update' : 'Connect via official OAuth'}
                     </span>
                   </div>
                 </div>
 
+                {acc.comingSoon ? (
+                  <span
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${
+                      isSmooth ? 'bg-slate-100 border-slate-200 text-slate-500' : 'bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    Coming soon
+                  </span>
+                ) : (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -312,19 +319,11 @@ export const AccountsScreen: React.FC = () => {
                 >
                   + Connect
                 </button>
+                )}
               </div>
             ))}
           </div>
         </div>
-      )}
-
-      {/* Add Channel Modal */}
-      {addChannelPlatform && (
-        <AddChannelModal
-          isOpen={Boolean(addChannelPlatform)}
-          platform={addChannelPlatform}
-          onClose={() => setAddChannelPlatform(null)}
-        />
       )}
     </div>
   );

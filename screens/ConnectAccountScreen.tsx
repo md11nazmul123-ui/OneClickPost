@@ -1,16 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
 import { PlatformIcon } from '../components/PlatformIcon';
 import { PlatformId } from '../types';
-import { AddChannelModal } from '../components/AddChannelModal';
 import { ArrowLeft, ShieldCheck, Lock, CheckCircle2, ChevronRight, Plus } from 'lucide-react';
 
 export const ConnectAccountScreen: React.FC = () => {
   const { accounts, openOAuthModal, goBack, t, theme } = useApp();
   const isSmooth = theme === 'smooth' || theme === 'light';
-  const [addChannelPlatform, setAddChannelPlatform] = useState<PlatformId | null>(null);
 
   const platformGuides: {
     id: PlatformId;
@@ -22,7 +20,7 @@ export const ConnectAccountScreen: React.FC = () => {
       id: 'youtube',
       name: 'YouTube',
       flowText: 'Connect with OAuth',
-      description: 'Upload 4K videos, shorts, and access channel analytics.',
+      description: 'Upload videos and Shorts straight to your channel.',
     },
     {
       id: 'facebook',
@@ -41,24 +39,6 @@ export const ConnectAccountScreen: React.FC = () => {
       name: 'TikTok',
       flowText: 'Connect with OAuth',
       description: 'Direct publishing to TikTok with FYP sound and tags.',
-    },
-    {
-      id: 'x',
-      name: 'X / Twitter',
-      flowText: 'Connect with OAuth',
-      description: 'Share video clips and threads with media previews.',
-    },
-    {
-      id: 'pinterest',
-      name: 'Pinterest',
-      flowText: 'Connect with OAuth',
-      description: 'Publish high-engagement Idea Pins and video pins.',
-    },
-    {
-      id: 'linkedin',
-      name: 'LinkedIn',
-      flowText: 'Connect with OAuth',
-      description: 'Broadcast corporate & creator updates to professionals.',
     },
   ];
 
@@ -115,12 +95,13 @@ export const ConnectAccountScreen: React.FC = () => {
       <div className="space-y-3">
         {platformGuides.map((item) => {
           const existing = accounts.find((a) => a.platform === item.id);
-          const isConnected = Boolean(existing?.connected);
+          const isConnected = accounts.some((a) => a.platform === item.id && a.connected);
+          const comingSoon = Boolean(existing?.comingSoon);
 
           return (
             <div
               key={item.id}
-              onClick={() => openOAuthModal(item.id)}
+              onClick={() => !comingSoon && openOAuthModal(item.id)}
               className={`rounded-2xl p-4 border flex items-center justify-between gap-4 cursor-pointer group transition-all ${
                 isSmooth
                   ? 'bg-white hover:bg-slate-50 border-slate-200/90 hover:border-slate-300 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md'
@@ -147,7 +128,7 @@ export const ConnectAccountScreen: React.FC = () => {
                     )}
                   </div>
                   <p className={`text-xs font-medium mt-0.5 ${isSmooth ? 'text-blue-600' : 'text-cyan-400'}`}>
-                    {item.flowText}
+                    {comingSoon ? 'Coming soon' : item.flowText}
                   </p>
                   <p className={`text-[11px] ${isSmooth ? 'text-slate-600' : 'text-slate-400'}`}>
                     {item.description}
@@ -161,7 +142,7 @@ export const ConnectAccountScreen: React.FC = () => {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setAddChannelPlatform(item.id);
+                      openOAuthModal(item.id);
                     }}
                     className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
                       isSmooth
@@ -188,15 +169,6 @@ export const ConnectAccountScreen: React.FC = () => {
           );
         })}
       </div>
-
-      {/* Add Additional Channel Modal */}
-      {addChannelPlatform && (
-        <AddChannelModal
-          isOpen={Boolean(addChannelPlatform)}
-          platform={addChannelPlatform}
-          onClose={() => setAddChannelPlatform(null)}
-        />
-      )}
     </div>
   );
 };

@@ -6,8 +6,6 @@ import {
   PlatformId,
   LanguageCode,
   ThemeMode,
-  VideoAspectRatio,
-  VideoFitMode,
   SocialAccount,
   PostItem,
   DraftItem,
@@ -17,14 +15,7 @@ import {
   PlatformSpecificContent,
   PlatformUploadStatus,
 } from '../types';
-import {
-  INITIAL_USER,
-  INITIAL_ACCOUNTS,
-  INITIAL_POSTS,
-  INITIAL_DRAFTS,
-  INITIAL_NOTIFICATIONS,
-  SAMPLE_VIDEOS,
-} from '../data/initialData';
+import { INITIAL_USER, COMING_SOON_ACCOUNTS } from '../data/initialData';
 import { translations } from '../data/translations';
 import { useAuth } from './AuthContext';
 import { useMediaUpload } from './MediaUploadContext';
@@ -74,12 +65,6 @@ interface AppContextType {
   setVideoDuration: (dur: string) => void;
   videoSize: string;
   thumbnailUrl: string;
-  videoAspectRatio: VideoAspectRatio;
-  setVideoAspectRatio: (ratio: VideoAspectRatio) => void;
-  videoFitMode: VideoFitMode;
-  setVideoFitMode: (mode: VideoFitMode) => void;
-  videoTrimRange: [number, number];
-  setVideoTrimRange: (range: [number, number]) => void;
   caption: string;
   hashtags: string[];
   customHashtags: string;
@@ -88,7 +73,6 @@ interface AppContextType {
   platformSettings: Partial<Record<PlatformId, PlatformSpecificContent>>;
   scheduledDate: string;
   scheduledTime: string;
-  repeat: boolean;
   setVideoUrl: (url: string) => void;
   setVideoFileName: (name: string) => void;
   setCaption: (caption: string) => void;
@@ -102,8 +86,6 @@ interface AppContextType {
   applyContentToAll: (caption: string, tags: string[]) => void;
   setScheduledDate: (date: string) => void;
   setScheduledTime: (time: string) => void;
-  setRepeat: (repeat: boolean) => void;
-  selectSampleVideo: (sample: typeof SAMPLE_VIDEOS[0]) => void;
   resetPostForm: () => void;
 
   // AI Generation
@@ -126,13 +108,9 @@ interface AppContextType {
   accounts: SocialAccount[];
   selectedAccountDetail: SocialAccount | null;
   setSelectedAccountDetail: (acc: SocialAccount | null) => void;
-  oauthModalPlatform: PlatformId | null;
-  oauthTargetAccountId: string | null;
+  /** প্ল্যাটফর্ম কানেক্ট (এখন শুধু YouTube; বাকিগুলো "শীঘ্রই আসছে") */
   openOAuthModal: (p: PlatformId, accountId?: string) => void;
-  closeOAuthModal: () => void;
-  confirmOAuthConnect: (p: PlatformId, details?: { handle?: string; accountLabel?: string; accountId?: string }) => void;
   disconnectAccount: (idOrPlatform: string) => void;
-  addNewAccount: (platform: PlatformId, handle: string, label: string) => void;
   refreshConnectedAccounts: () => Promise<void>;
   connectingPlatform: PlatformId | null;
   accountNotice: AccountNotice | null;
@@ -156,14 +134,6 @@ interface AppContextType {
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsRead: () => void;
-
-  // Daily Broadcast Goals
-  dailyBroadcastGoal: number;
-  setDailyBroadcastGoal: (goal: number) => void;
-  todayBroadcastsCount: number;
-  incrementTodayBroadcasts: () => void;
-  decrementTodayBroadcasts: () => void;
-  resetTodayBroadcasts: (val?: number) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -215,22 +185,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     applyTheme(alwaysDay ? 'light' : theme);
   }, [theme, screen]);
 
-  // Language
+  // Language — এখন শুধু English আর বাংলা (আগে অন্য ভাষা বেছে থাকলে English)
   const [language, setLanguageState] = useState<LanguageCode>(() => {
-    return (localStorage.getItem('ocp_lang') as LanguageCode) || 'en';
+    const saved = localStorage.getItem('ocp_lang');
+    return saved === 'bn' ? 'bn' : 'en';
   });
-
-  const isRTL = (lang: LanguageCode) =>
-    lang === 'ar' || lang === 'ar-eg' || lang === 'fa' || lang === 'ur';
 
   const setLanguage = (lang: LanguageCode) => {
     setLanguageState(lang);
     localStorage.setItem('ocp_lang', lang);
-    document.documentElement.dir = isRTL(lang) ? 'rtl' : 'ltr';
   };
 
   useEffect(() => {
-    document.documentElement.dir = isRTL(language) ? 'rtl' : 'ltr';
+    document.documentElement.dir = 'ltr';
+    document.documentElement.lang = language;
   }, [language]);
 
   const t = (key: string): string => {
@@ -258,30 +226,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // User Profile
   const [user, setUser] = useState<UserProfile>(() => {
-    const saved = localStorage.getItem('ocp_user');
+    const saved = localStorage.getItem('ocp_user_v2');
     return saved ? JSON.parse(saved) : INITIAL_USER;
   });
 
   const updateUser = (data: Partial<UserProfile>) => {
     setUser((prev) => {
       const updated = { ...prev, ...data };
-      localStorage.setItem('ocp_user', JSON.stringify(updated));
+      localStorage.setItem('ocp_user_v2', JSON.stringify(updated));
       return updated;
     });
   };
 
-  // Accounts
-  // YouTube = সার্ভার থেকে আসা আসল চ্যানেল। বাকি প্ল্যাটফর্ম এখনো ডেমো (নিজ নিজ ধাপে আসল হবে)।
-  const [localAccounts, setAccounts] = useState<SocialAccount[]>(() => {
-    const saved = localStorage.getItem('ocp_accounts');
-    return saved ? JSON.parse(saved) : INITIAL_ACCOUNTS;
-  });
+  // Accounts — YouTube = সার্ভার থেকে আসা আসল চ্যানেল; বাকি প্ল্যাটফর্ম "শীঘ্রই আসছে"
   const [serverAccounts, setServerAccounts] = useState<SocialAccount[]>([]);
   const [connectingPlatform, setConnectingPlatform] = useState<PlatformId | null>(null);
   const [accountNotice, setAccountNotice] = useState<AccountNotice | null>(null);
   const clearAccountNotice = () => setAccountNotice(null);
 
-  const REAL_PLATFORMS: PlatformId[] = ['youtube'];
   const accounts = useMemo<SocialAccount[]>(
     () => [
       ...serverAccounts,
@@ -303,10 +265,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               accountLabel: 'Main Channel',
             },
           ]),
-      ...localAccounts.filter((a) => !REAL_PLATFORMS.includes(a.platform)),
+      ...COMING_SOON_ACCOUNTS,
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [serverAccounts, localAccounts]
+    [serverAccounts]
   );
   const isServerAccount = (id: string) => serverAccounts.some((a) => a.id === id);
 
@@ -340,148 +301,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const [selectedAccountDetail, setSelectedAccountDetail] = useState<SocialAccount | null>(null);
-  const [oauthModalPlatform, setOauthModalPlatform] = useState<PlatformId | null>(null);
-  const [oauthTargetAccountId, setOauthTargetAccountId] = useState<string | null>(null);
 
-  const openOAuthModal = (p: PlatformId, accountId?: string) => {
+  /** কানেক্ট — YouTube হলে Google-এর অফিসিয়াল পেজে; বাকিগুলো এখনো চালু হয়নি */
+  const openOAuthModal = (p: PlatformId) => {
     if (p === 'youtube') {
       void connectYouTube();
       return;
     }
-    setOauthModalPlatform(p);
-    setOauthTargetAccountId(accountId || null);
-  };
-  const closeOAuthModal = () => {
-    setOauthModalPlatform(null);
-    setOauthTargetAccountId(null);
-  };
-
-  const confirmOAuthConnect = (
-    platform: PlatformId,
-    details?: { handle?: string; accountLabel?: string; accountId?: string }
-  ) => {
-    const targetId = details?.accountId || oauthTargetAccountId;
-
-    setAccounts((prev) => {
-      // If reconnecting a specific existing account ID
-      if (targetId) {
-        return prev.map((acc) => {
-          if (acc.id === targetId) {
-            return {
-              ...acc,
-              connected: true,
-              handle: details?.handle || (acc.handle === 'Not Connected' ? `@nazmul_${platform}` : acc.handle),
-              accountLabel: details?.accountLabel || acc.accountLabel,
-              tokenExpiresIn: '60 days',
-            };
-          }
-          return acc;
-        });
-      }
-
-      // If connecting a newly designated account or toggling existing disconnected
-      const existingConnectedSame = prev.filter((a) => a.platform === platform && a.connected);
-      const existingDisconnected = prev.find((a) => a.platform === platform && !a.connected);
-
-      if (details?.handle || details?.accountLabel) {
-        // Create as fresh additional account under this platform
-        const newAccId = `${platform.slice(0, 2)}-${Date.now()}`;
-        const newAccount: SocialAccount = {
-          id: newAccId,
-          platform,
-          name: platform.toUpperCase(),
-          handle: details.handle?.startsWith('@') ? details.handle : `@${details.handle || `channel_${Date.now().toString().slice(-4)}`}`,
-          accountLabel: details.accountLabel || `Channel #${existingConnectedSame.length + 1}`,
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-          connected: true,
-          followers: '1.2K',
-          postsCount: 0,
-          engagement: '4.8%',
-          tokenExpiresIn: '60 days',
-          scopes: ['publish_content', 'read_insights'],
-        };
-        const updated = [...prev, newAccount];
-        localStorage.setItem('ocp_accounts', JSON.stringify(updated));
-        return updated;
-      }
-
-      if (existingDisconnected) {
-        const updated = prev.map((acc) => {
-          if (acc.id === existingDisconnected.id) {
-            return {
-              ...acc,
-              connected: true,
-              handle: acc.handle === 'Not Connected' ? `@nazmul_${platform}` : acc.handle,
-              tokenExpiresIn: '60 days',
-            };
-          }
-          return acc;
-        });
-        localStorage.setItem('ocp_accounts', JSON.stringify(updated));
-        return updated;
-      }
-
-      // Otherwise connect first matching platform
-      const updated = prev.map((acc) => {
-        if (acc.platform === platform) {
-          return {
-            ...acc,
-            connected: true,
-            handle: acc.handle === 'Not Connected' ? `@nazmul_${platform}` : acc.handle,
-            tokenExpiresIn: '60 days',
-          };
-        }
-        return acc;
-      });
-      localStorage.setItem('ocp_accounts', JSON.stringify(updated));
-      return updated;
-    });
-
-    closeOAuthModal();
-    // Add notification
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      type: 'account_connected',
-      title: 'Social Account Connected',
-      message: `${platform.toUpperCase()} channel/profile linked successfully via official OAuth.`,
-      time: 'Just now',
-      isRead: false,
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-  };
-
-  const addNewAccount = (platform: PlatformId, handle: string, label: string) => {
-    if (platform === 'youtube') {
-      void connectYouTube();
-      return;
-    }
-    const newAccId = `${platform.slice(0, 2)}-${Date.now()}`;
-    const newAccount: SocialAccount = {
-      id: newAccId,
-      platform,
-      name: platform === 'youtube' ? 'YouTube' : platform === 'facebook' ? 'Facebook' : platform.toUpperCase(),
-      handle: handle.startsWith('@') ? handle : `@${handle}`,
-      accountLabel: label || 'Additional Channel',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-      connected: true,
-      followers: '5.4K',
-      postsCount: 1,
-      engagement: '6.2%',
-      tokenExpiresIn: '60 days',
-      scopes: ['publish_content', 'media_upload', 'manage_posts'],
-    };
-
-    setAccounts((prev) => {
-      const updated = [...prev, newAccount];
-      localStorage.setItem('ocp_accounts', JSON.stringify(updated));
-      return updated;
-    });
-
-    // Also auto-select it for posting
-    setSelectedAccountIds((prev) => [...prev, newAccId]);
-    if (!selectedPlatforms.includes(platform)) {
-      setSelectedPlatforms((prev) => [...prev, platform]);
-    }
+    setAccountNotice({ type: 'info', message: 'This platform is coming soon. YouTube is available now.' });
   };
 
   const disconnectAccount = (idOrPlatform: string) => {
@@ -506,74 +333,43 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           await refreshConnectedAccounts();
         }
       })();
-      return;
-    }
-    setAccounts((prev) => {
-      const updated = prev.map((acc) => {
-        if (acc.id === idOrPlatform || acc.platform === idOrPlatform) {
-          return {
-            ...acc,
-            connected: false,
-            tokenExpiresIn: 'Disconnected',
-          };
-        }
-        return acc;
-      });
-      localStorage.setItem('ocp_accounts', JSON.stringify(updated));
-      return updated;
-    });
-
-    setSelectedAccountIds((prev) => prev.filter((id) => id !== idOrPlatform));
-
-    if (selectedAccountDetail?.id === idOrPlatform || selectedAccountDetail?.platform === idOrPlatform) {
-      setSelectedAccountDetail((prev) => (prev ? { ...prev, connected: false } : null));
     }
   };
 
-  // Active Post Creation state
-  const [videoTitle, setVideoTitle] = useState<string>('5 Game-Changing AI Tools That Will Replace Programmers');
-  const [videoUrl, setVideoUrl] = useState<string>(SAMPLE_VIDEOS[0].url);
-  const [videoFileName, setVideoFileName] = useState<string>(SAMPLE_VIDEOS[0].name);
-  const [videoDuration, setVideoDuration] = useState<string>(SAMPLE_VIDEOS[0].duration);
-  const [videoSize, setVideoSize] = useState<string>(SAMPLE_VIDEOS[0].size);
-  const [thumbnailUrl, setThumbnailUrl] = useState<string>(SAMPLE_VIDEOS[0].thumbnail);
-  const [videoAspectRatio, setVideoAspectRatio] = useState<VideoAspectRatio>('original');
-  const [videoFitMode, setVideoFitMode] = useState<VideoFitMode>('contain-blur');
-  const [videoTrimRange, setVideoTrimRange] = useState<[number, number]>([0, 60]);
-  const [caption, setCaption] = useState<string>(
-    'Nature is not a place to visit, it is home. 🌿 Take a deep breath and immerse yourself in this tranquil escape.'
-  );
-  const [hashtags, setHashtags] = useState<string[]>(['#nature', '#travel', '#beautiful', '#wanderlust', '#explore']);
-  const [customHashtags, setCustomHashtags] = useState<string>('nature, travel, beautiful');
-  const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformId[]>(['youtube', 'facebook', 'instagram', 'tiktok']);
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
-    return ['yt-1', 'yt-2', 'fb-1', 'ig-1', 'tt-1'];
-  });
+  // Active Post Creation state (খালি থেকে শুরু — কোনো নমুনা লেখা নেই)
+  const [videoTitle, setVideoTitle] = useState<string>('');
+  const [videoUrl, setVideoUrl] = useState<string>('');
+  const [videoFileName, setVideoFileName] = useState<string>('');
+  const [videoDuration, setVideoDuration] = useState<string>('');
+  const [videoSize, setVideoSize] = useState<string>('');
+  const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
+  const [caption, setCaption] = useState<string>('');
+  const [hashtags, setHashtags] = useState<string[]>([]);
+  const [customHashtags, setCustomHashtags] = useState<string>('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformId[]>(['youtube']);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const [platformSettings, setPlatformSettings] = useState<Partial<Record<PlatformId, PlatformSpecificContent>>>({});
 
-  const [platformSettings, setPlatformSettings] = useState<Partial<Record<PlatformId, PlatformSpecificContent>>>({
-    youtube: {
-      title: 'Majestic Nature Video | Beautiful World 4K',
-      description: 'Explore the sublime calmness of pristine valleys. Subscribe for weekly escapes! 🌿\n\n#nature #travel #4k',
-      hashtags: ['#nature', '#travel', '#beautiful'],
-    },
-    facebook: {
-      caption: 'Nature is not a place to visit, it is home. 🌿 Would you travel here this weekend?',
-      hashtags: ['#nature', '#travel', '#beautiful'],
-    },
-    instagram: {
-      caption: 'Unreal scenery that feels straight out of a dream ✨ Tag your travel buddy and save this! ✈️📍',
-      hashtags: ['#nature', '#travel', '#reels', '#explore', '#viral'],
-    },
-    tiktok: {
-      caption: 'POV: You found the most peaceful spot on earth 🌿 #fyp #viral',
-      hashtags: ['#nature', '#travel', '#viral', '#fyp'],
-    },
+  // আজকের তারিখ আর এক ঘণ্টা পরের সময় দিয়ে শুরু
+  const [scheduledDate, setScheduledDate] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
-  const [scheduledDate, setScheduledDate] = useState<string>('2026-09-26');
-  const [scheduledTime, setScheduledTime] = useState<string>('10:30');
-  const [repeat, setRepeat] = useState<boolean>(false);
+  const [scheduledTime, setScheduledTime] = useState<string>(() => {
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    return `${String(d.getHours()).padStart(2, '0')}:00`;
+  });
   const [aiTone, setAiTone] = useState<string>('viral');
-  const [isGeneratingAI, setIsGeneratingAI] = useState<boolean>(false);
+  const isGeneratingAI = false; // AI ধাপে আসল হবে
+
+  // নতুন YouTube চ্যানেল কানেক্ট হলে পোস্টের জন্য নিজে থেকে বাছাই
+  useEffect(() => {
+    const connectedIds = serverAccounts.filter((a) => a.connected).map((a) => a.id);
+    setSelectedAccountIds((prev) => {
+      const kept = prev.filter((id) => connectedIds.includes(id));
+      return kept.length > 0 ? kept : connectedIds;
+    });
+  }, [serverAccounts]);
 
   // Toggle platform toggles all connected accounts under that platform
   const togglePlatform = (p: PlatformId) => {
@@ -599,7 +395,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const isSelected = prev.includes(accountId);
       const nextAccIds = isSelected ? prev.filter((id) => id !== accountId) : [...prev, accountId];
 
-      // If at least one account in this platform is selected, keep platform selected
       const hasOtherSelectedInPlatform = nextAccIds.some((id) => {
         const otherAcc = accounts.find((a) => a.id === id);
         return otherAcc?.platform === acc.platform;
@@ -642,11 +437,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const applyContentToAll = (newCaption: string, newTags: string[]) => {
     const updated: Partial<Record<PlatformId, PlatformSpecificContent>> = {};
-    const platforms: PlatformId[] = ['youtube', 'facebook', 'instagram', 'tiktok', 'x', 'pinterest', 'linkedin'];
+    const platforms: PlatformId[] = ['youtube', 'facebook', 'instagram', 'tiktok'];
     platforms.forEach((p) => {
       updated[p] = {
-        title: p === 'youtube' ? newCaption.slice(0, 70) : undefined,
-        description: p === 'youtube' ? `${newCaption}\n\n${newTags.join(' ')}` : undefined,
+        title: p === 'youtube' ? (videoTitle || newCaption).slice(0, 100) : undefined,
+        description: p === 'youtube' ? `${newCaption}\n\n${newTags.join(' ')}`.trim() : undefined,
         caption: newCaption,
         hashtags: [...newTags],
       };
@@ -654,110 +449,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setPlatformSettings(updated);
   };
 
-  const selectSampleVideo = (sample: typeof SAMPLE_VIDEOS[0]) => {
-    setVideoTitle(sample.topic);
-    setVideoUrl(sample.url);
-    setVideoFileName(sample.name);
-    setVideoDuration(sample.duration);
-    setVideoSize(sample.size);
-    setThumbnailUrl(sample.thumbnail);
-    setCaption(`Exploring ${sample.topic}. 🌿 Check out this stunning view!`);
-  };
-
   const resetPostForm = () => {
-    selectSampleVideo(SAMPLE_VIDEOS[0]);
-    setVideoTitle('Exploring Pristine Mountain Valleys');
-    setCaption('Nature is not a place to visit, it is home. 🌿 Take a deep breath and immerse yourself in this tranquil escape.');
-    setHashtags(['#nature', '#travel', '#beautiful', '#wanderlust']);
-    setCustomHashtags('nature, travel, beautiful');
-    setSelectedPlatforms(['youtube', 'facebook', 'instagram', 'tiktok']);
+    setVideoTitle('');
+    setVideoUrl('');
+    setVideoFileName('');
+    setVideoDuration('');
+    setVideoSize('');
+    setThumbnailUrl('');
+    setCaption('');
+    setHashtags([]);
+    setCustomHashtags('');
+    setPlatformSettings({});
+    setSelectedPlatforms(['youtube']);
   };
 
-  // AI Caption & Hashtags Generation
-  const generateAICaption = async (toneOverride?: string) => {
-    setIsGeneratingAI(true);
-    const targetTone = toneOverride || aiTone;
-    try {
-      const res = await fetch('/api/v1/ai/generate-caption', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: videoTitle || videoFileName || 'Epic nature travel video',
-          platforms: selectedPlatforms,
-          tone: targetTone,
-          language: language === 'bn' ? 'bn' : 'en',
-        }),
-      });
-      const json = await res.json();
-      if (json.success && json.caption) {
-        setCaption(json.caption);
-        if (json.hashtags && Array.isArray(json.hashtags)) {
-          const cleanedTags = json.hashtags.map((h: string) => (h.startsWith('#') ? h : `#${h}`));
-          setHashtags(cleanedTags);
-          setCustomHashtags(cleanedTags.map((h: string) => h.replace('#', '')).join(', '));
-        }
-        // Update per-platform presets if overrides returned
-        if (json.platform_overrides) {
-          const po = json.platform_overrides;
-          setPlatformSettings((prev) => ({
-            ...prev,
-            youtube: {
-              title: po.youtube?.title || videoTitle || 'Cinematic 4K Experience',
-              description: po.youtube?.caption || po.youtube?.description || prev.youtube?.description || '',
-              hashtags: po.youtube?.hashtags || prev.youtube?.hashtags || [],
-            },
-            facebook: {
-              caption: po.facebook?.caption || prev.facebook?.caption || '',
-              hashtags: po.facebook?.hashtags || prev.facebook?.hashtags || [],
-            },
-            instagram: {
-              caption: po.instagram?.caption || prev.instagram?.caption || '',
-              hashtags: po.instagram?.hashtags || prev.instagram?.hashtags || [],
-            },
-            tiktok: {
-              caption: po.tiktok?.caption || prev.tiktok?.caption || '',
-              hashtags: po.tiktok?.hashtags || prev.tiktok?.hashtags || [],
-            },
-            x: {
-              caption: po.x?.caption || prev.x?.caption || '',
-              hashtags: po.x?.hashtags || prev.x?.hashtags || [],
-            },
-          }));
-        }
-      }
-    } catch (err) {
-      console.error('Failed to generate AI content:', err);
-    } finally {
-      setIsGeneratingAI(false);
-    }
+  // AI Caption & Hashtags — AI ধাপে আসল হবে (Gemini → Groq → Ollama)। এখন কিছু করে না।
+  const generateAICaption = async (_toneOverride?: string) => {
+    void _toneOverride;
   };
 
-  const generateAIHashtags = async () => {
-    setIsGeneratingAI(true);
-    try {
-      const res = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic: caption || videoFileName || 'travel video',
-          tone: 'viral',
-          language,
-        }),
-      });
-      const json = await res.json();
-      if (json.success && json.data?.general?.hashtags) {
-        const tags = json.data.general.hashtags;
-        setHashtags(tags);
-        setCustomHashtags(tags.map((t: string) => t.replace('#', '')).join(', '));
-      }
-    } catch (err) {
-      console.error('Failed to generate AI tags:', err);
-    } finally {
-      setIsGeneratingAI(false);
-    }
-  };
+  const generateAIHashtags = async () => {};
 
-  // Upload & Publishing Simulation
+  // Upload & Publishing
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [platformUploadStatus, setPlatformUploadStatus] = useState<Record<string, PlatformUploadStatus>>({});
@@ -766,7 +479,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // ── Publishing pipeline ──────────────────────────────────────────────────
   // আসল YouTube চ্যানেল → সার্ভারে পাবলিশ (ব্যাকগ্রাউন্ডে), প্রতি ৩ সেকেন্ডে অবস্থা দেখা।
-  // বাকি প্ল্যাটফর্ম এখনো ডেমো (নিজ নিজ ধাপে আসল হবে)।
   const pipelineRunningRef = useRef(false);
 
   /** আসল YouTube চ্যানেলে পাবলিশ; প্রতিটা চ্যানেলের অবস্থা onUpdate দিয়ে জানায় */
@@ -844,11 +556,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setUploadProgress(5);
     navigateTo('uploading');
 
+    // শুধু কানেক্ট করা আসল চ্যানেল (এখন YouTube)
     const targetAccounts = accounts.filter(
-      (a) => a.connected && (selectedAccountIds.includes(a.id) || selectedPlatforms.includes(a.platform))
+      (a) => a.connected && isServerAccount(a.id) && selectedAccountIds.includes(a.id)
     );
-    const serverTargets = targetAccounts.filter((a) => isServerAccount(a.id));
-    const demoTargets = targetAccounts.filter((a) => !isServerAccount(a.id));
 
     let statuses: Record<string, PlatformUploadStatus> = {};
     targetAccounts.forEach((acc) => {
@@ -860,86 +571,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         accountHandle: acc.handle,
       };
     });
+
     if (targetAccounts.length === 0) {
-      selectedPlatforms.forEach((p) => {
-        statuses[p] = { status: 'uploading', progress: 5 };
-      });
+      statuses = {
+        youtube: {
+          status: 'failed',
+          progress: 100,
+          error: 'No channel selected. Connect your YouTube channel in Accounts, then select it.',
+        },
+      };
+      setPlatformUploadStatus(statuses);
+      setUploadProgress(100);
+      pipelineRunningRef.current = false;
+      finishUploadPipeline(isScheduled, statuses, null);
+      return;
     }
+
     setPlatformUploadStatus(statuses);
 
     const update = (key: string, patch: Partial<PlatformUploadStatus>) => {
       statuses = { ...statuses, [key]: { ...statuses[key], ...patch } as PlatformUploadStatus };
       setPlatformUploadStatus(statuses);
-    };
-
-    const demoKeys = targetAccounts.length > 0 ? demoTargets.map((a) => a.id) : Object.keys(statuses);
-    let demoDone = demoKeys.length === 0;
-    let serverDone = serverTargets.length === 0;
-    let serverPostId: string | null = null;
-    let finished = false;
-
-    const recompute = () => {
       const values = Object.values(statuses);
       const avg =
-        values.length === 0
-          ? 100
-          : values.reduce((sum, v) => sum + (v.status === 'published' || v.status === 'failed' ? 100 : v.progress ?? 0), 0) /
-            values.length;
+        values.reduce((sum, v) => sum + (v.status === 'published' || v.status === 'failed' ? 100 : v.progress ?? 0), 0) /
+        values.length;
       setUploadProgress(Math.max(5, Math.min(100, Math.round(avg))));
-
-      if (demoDone && serverDone && !finished) {
-        finished = true;
-        pipelineRunningRef.current = false;
-        finishUploadPipeline(isScheduled, statuses, serverPostId);
-      }
     };
 
-    // ডেমো প্ল্যাটফর্ম (Facebook, Instagram ...) — আগের মতোই অনুকরণ
-    if (!demoDone) {
-      let progress = 10;
-      const timer = setInterval(() => {
-        progress = Math.min(100, progress + Math.floor(Math.random() * 14) + 6);
-        demoKeys.forEach((key, idx) => {
-          if (statuses[key]?.status !== 'uploading') return;
-          if (progress >= 100 || progress > (idx + 1) * (90 / demoKeys.length)) {
-            const acc = accounts.find((a) => a.id === key);
-            const platformKey = acc ? acc.platform : key;
-            update(key, {
-              status: 'published',
-              url: `https://${platformKey}.com/post/ocp_${Date.now()}_${key.slice(-4)}`,
-              progress: 100,
-            });
-          } else {
-            update(key, { progress });
-          }
-        });
-        if (demoKeys.every((key) => statuses[key]?.status !== 'uploading')) {
-          clearInterval(timer);
-          demoDone = true;
-        }
-        recompute();
-      }, 400);
-    }
-
-    // আসল YouTube
-    if (!serverDone) {
-      void runServerPublish(
-        serverTargets.map((a) => a.id),
-        isScheduled,
-        (key, patch) => {
-          update(key, patch);
-          recompute();
-        }
-      ).then((postId) => {
-        serverPostId = postId;
-        serverDone = true;
-        recompute();
-      });
-    }
-
-    if (demoDone && serverDone) {
-      recompute();
-    }
+    void runServerPublish(
+      targetAccounts.map((a) => a.id),
+      isScheduled,
+      update
+    ).then((postId) => {
+      pipelineRunningRef.current = false;
+      finishUploadPipeline(isScheduled, statuses, postId);
+    });
   };
 
   const finishUploadPipeline = (
@@ -948,9 +615,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     serverPostId: string | null
   ) => {
     setIsUploading(false);
-    const targetAccounts = accounts.filter(
-      (a) => a.connected && (selectedAccountIds.includes(a.id) || selectedPlatforms.includes(a.platform))
-    );
 
     const resultValues = Object.values(results);
     const publishedCount = resultValues.filter((r) => r.status === 'published').length;
@@ -969,46 +633,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       videoSize,
       thumbnailUrl,
       selectedPlatforms,
-      selectedAccountIds: targetAccounts.map((a) => a.id),
+      selectedAccountIds: Object.keys(results).filter((k) => isServerAccount(k)),
       platformSettings,
       status: allFailed ? 'failed' : isScheduled ? 'scheduled' : 'published',
       publishType: isScheduled ? 'schedule' : 'now',
       scheduledDate: isScheduled ? scheduledDate : undefined,
       scheduledTime: isScheduled ? scheduledTime : undefined,
-      repeat,
       platformResults: { ...results },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      viewsTotal: 0,
-      likesTotal: 0,
     };
 
     setPosts((prev) => [newPost, ...prev.filter((p) => p.id !== newPost.id)]);
     setLastPublishedPost(newPost);
-    if (publishedCount > 0) {
-      setTodayBroadcastsCount((prev) => {
-        const next = prev + 1;
-        localStorage.setItem('ocp_today_broadcasts_count', next.toString());
-        return next;
-      });
-    }
 
     const notif: NotificationItem = {
       id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       type: allFailed ? 'upload_failed' : isScheduled ? 'schedule_reminder' : 'publish_success',
       title: allFailed
         ? 'Publishing Failed'
-        : isScheduled
-        ? 'Post Scheduled Successfully!'
         : failedCount > 0
         ? 'Published with some errors'
         : 'Published Successfully!',
       message: allFailed
-        ? 'The video could not be published. Open the post to see why.'
-        : isScheduled
-        ? `Queued for broadcast across ${publishedCount} channels on ${scheduledDate} at ${scheduledTime}.`
+        ? resultValues[0]?.error || 'The video could not be published.'
         : `Published to ${publishedCount} of ${resultValues.length} channels.`,
-      time: 'Just now',
+      time: new Date().toLocaleString(),
       isRead: false,
       postId: newPost.id,
     };
@@ -1025,49 +675,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     startUploadPipeline(true);
   };
 
+  // একটা চ্যানেলে আবার পাবলিশ
   const retryPlatformUpload = (key: string) => {
-    // আসল YouTube চ্যানেল: শুধু সেই চ্যানেলে আবার পাবলিশ
-    if (isServerAccount(key)) {
-      setPlatformUploadStatus((prev) => ({
-        ...prev,
-        [key]: { ...(prev[key] || {}), status: 'uploading', progress: 5, error: undefined },
-      }));
-      void runServerPublish([key], false, (k, patch) =>
-        setPlatformUploadStatus((prev) => ({ ...prev, [k]: { ...(prev[k] || {}), ...patch } as PlatformUploadStatus }))
-      );
-      return;
-    }
-
+    if (!isServerAccount(key)) return;
     setPlatformUploadStatus((prev) => ({
       ...prev,
-      [key]: { ...(prev[key] || {}), status: 'uploading', progress: 50 },
+      [key]: { ...(prev[key] || {}), status: 'uploading', progress: 5, error: undefined },
     }));
-
-    setTimeout(() => {
-      setPlatformUploadStatus((prev) => {
-        const acc = accounts.find((a) => a.id === key);
-        const platformKey = acc ? acc.platform : key;
-        return {
-          ...prev,
-          [key]: {
-            ...prev[key],
-            status: 'published',
-            url: `https://${platformKey}.com/post/ocp_${Date.now()}`,
-            progress: 100,
-          },
-        };
-      });
-    }, 1500);
+    void runServerPublish([key], false, (k, patch) =>
+      setPlatformUploadStatus((prev) => ({ ...prev, [k]: { ...(prev[k] || {}), ...patch } as PlatformUploadStatus }))
+    );
   };
 
   // Posts List
   const [posts, setPosts] = useState<PostItem[]>(() => {
-    const saved = localStorage.getItem('ocp_posts');
-    return saved ? JSON.parse(saved) : INITIAL_POSTS;
+    // v2: পুরনো নমুনা পোস্ট আর দেখাবে না
+    const saved = localStorage.getItem('ocp_posts_v2');
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem('ocp_posts', JSON.stringify(posts));
+    localStorage.setItem('ocp_posts_v2', JSON.stringify(posts));
   }, [posts]);
 
   const [selectedPostDetail, setSelectedPostDetail] = useState<PostItem | null>(null);
@@ -1094,12 +722,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Drafts
   const [drafts, setDrafts] = useState<DraftItem[]>(() => {
-    const saved = localStorage.getItem('ocp_drafts');
-    return saved ? JSON.parse(saved) : INITIAL_DRAFTS;
+    const saved = localStorage.getItem('ocp_drafts_v2');
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem('ocp_drafts', JSON.stringify(drafts));
+    localStorage.setItem('ocp_drafts_v2', JSON.stringify(drafts));
   }, [drafts]);
 
   const saveCurrentAsDraft = () => {
@@ -1113,7 +741,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       thumbnailUrl,
       selectedPlatforms,
       platformSettings,
-      lastEdited: 'Just now',
+      lastEdited: new Date().toLocaleString(),
     };
     setDrafts((prev) => [newDraft, ...prev.filter((d) => d.title !== newDraft.title)]);
     navigateTo('drafts');
@@ -1122,7 +750,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const loadDraft = (draft: DraftItem) => {
     setVideoUrl(draft.videoUrl);
     setVideoFileName(draft.videoFileName);
-    setThumbnailUrl(draft.thumbnailUrl || SAMPLE_VIDEOS[0].thumbnail);
+    setThumbnailUrl(draft.thumbnailUrl || '');
     setCaption(draft.caption);
     setHashtags(draft.hashtags);
     setCustomHashtags(draft.hashtags.map((h) => h.replace('#', '')).join(', '));
@@ -1137,12 +765,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Notifications
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
-    const saved = localStorage.getItem('ocp_notifs');
-    return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
+    const saved = localStorage.getItem('ocp_notifs_v2');
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem('ocp_notifs', JSON.stringify(notifications));
+    localStorage.setItem('ocp_notifs_v2', JSON.stringify(notifications));
   }, [notifications]);
 
   const unreadNotifsCount = notifications.filter((n) => !n.isRead).length;
@@ -1175,44 +803,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const markAllNotificationsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
-
-  // Daily Broadcast Goals State
-  const [dailyBroadcastGoal, setDailyBroadcastGoalState] = useState<number>(() => {
-    const saved = localStorage.getItem('ocp_daily_broadcast_goal');
-    return saved ? Math.max(1, parseInt(saved, 10)) : 5;
-  });
-
-  const setDailyBroadcastGoal = (goal: number) => {
-    const clamped = Math.max(1, Math.min(30, goal));
-    setDailyBroadcastGoalState(clamped);
-    localStorage.setItem('ocp_daily_broadcast_goal', clamped.toString());
-  };
-
-  const [todayBroadcastsCount, setTodayBroadcastsCount] = useState<number>(() => {
-    const saved = localStorage.getItem('ocp_today_broadcasts_count');
-    return saved !== null ? parseInt(saved, 10) : 2;
-  });
-
-  const incrementTodayBroadcasts = () => {
-    setTodayBroadcastsCount((prev) => {
-      const next = prev + 1;
-      localStorage.setItem('ocp_today_broadcasts_count', next.toString());
-      return next;
-    });
-  };
-
-  const decrementTodayBroadcasts = () => {
-    setTodayBroadcastsCount((prev) => {
-      const next = Math.max(0, prev - 1);
-      localStorage.setItem('ocp_today_broadcasts_count', next.toString());
-      return next;
-    });
-  };
-
-  const resetTodayBroadcasts = (val: number = 0) => {
-    setTodayBroadcastsCount(val);
-    localStorage.setItem('ocp_today_broadcasts_count', val.toString());
   };
 
   // লগইন হলে আসল অ্যাকাউন্ট লোড; Google থেকে ফিরে এলে কানেকশন শেষ করা
@@ -1306,13 +896,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         platformSettings,
         scheduledDate,
         scheduledTime,
-        repeat,
-        videoAspectRatio,
-        setVideoAspectRatio,
-        videoFitMode,
-        setVideoFitMode,
-        videoTrimRange,
-        setVideoTrimRange,
         setVideoUrl,
         setVideoFileName,
         setCaption,
@@ -1326,8 +909,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         applyContentToAll,
         setScheduledDate,
         setScheduledTime,
-        setRepeat,
-        selectSampleVideo,
         resetPostForm,
         isGeneratingAI,
         aiTone,
@@ -1344,13 +925,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         accounts,
         selectedAccountDetail,
         setSelectedAccountDetail,
-        oauthModalPlatform,
-        oauthTargetAccountId,
         openOAuthModal,
-        closeOAuthModal,
-        confirmOAuthConnect,
         disconnectAccount,
-        addNewAccount,
         refreshConnectedAccounts,
         connectingPlatform,
         accountNotice,
@@ -1370,12 +946,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateNotificationSettings,
         markNotificationAsRead,
         markAllNotificationsRead,
-        dailyBroadcastGoal,
-        setDailyBroadcastGoal,
-        todayBroadcastsCount,
-        incrementTodayBroadcasts,
-        decrementTodayBroadcasts,
-        resetTodayBroadcasts,
       }}
     >
       {children}

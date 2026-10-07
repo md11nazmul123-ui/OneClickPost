@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { THUMB_PLACEHOLDER } from '../lib/placeholders';
 import { useApp } from '../context/AppContext';
 import { PlatformIcon } from '../components/PlatformIcon';
 import { PostItem } from '../types';
@@ -95,7 +96,7 @@ export const ScheduledPostsScreen: React.FC = () => {
               >
                 <div className="flex items-center gap-3.5 min-w-0">
                   <img
-                    src={post.thumbnailUrl}
+                    src={post.thumbnailUrl || THUMB_PLACEHOLDER}
                     alt={post.title}
                     className="w-16 h-16 rounded-xl object-cover shrink-0 border border-sky-900"
                   />
@@ -156,7 +157,7 @@ export const ScheduledPostsScreen: React.FC = () => {
             >
               <div className="flex items-center gap-3.5 min-w-0">
                 <img
-                  src={post.thumbnailUrl}
+                  src={post.thumbnailUrl || THUMB_PLACEHOLDER}
                   alt={post.title}
                   className="w-16 h-16 rounded-xl object-cover shrink-0 border border-sky-900"
                 />

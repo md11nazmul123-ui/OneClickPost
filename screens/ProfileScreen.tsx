@@ -7,9 +7,7 @@ import {
   ArrowLeft,
   User,
   Mail,
-  Sparkles,
   Check,
-  Camera,
   Settings,
   LogOut,
   ChevronRight,
@@ -71,20 +69,21 @@ export const ProfileScreen: React.FC = () => {
         {/* Avatar Section */}
         <div className="flex items-center gap-4">
           <div className="relative group">
-            <img
-              src={user.avatar}
-              alt={user.name}
-              className="w-20 h-20 rounded-2xl object-cover ring-2 ring-cyan-400 shadow-xl"
-            />
-            <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
-              <Camera className="w-6 h-6 text-white" />
-            </div>
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="w-20 h-20 rounded-2xl object-cover ring-2 ring-cyan-400 shadow-xl"
+              />
+            ) : (
+              <span className="w-20 h-20 rounded-2xl grid place-items-center bg-blue-600 text-white text-3xl font-black shadow-xl">
+                {(user.name || '?').charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <div>
             <h3 className="text-base font-bold text-white">{user.name}</h3>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-cyan-400 px-2.5 py-0.5 rounded-full bg-cyan-950 border border-cyan-800 mt-1">
-              <Sparkles className="w-3 h-3" /> {user.plan} Account
-            </span>
+            <span className="block text-xs text-slate-400 mt-0.5">{user.email}</span>
           </div>
         </div>
 
