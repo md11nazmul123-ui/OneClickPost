@@ -135,9 +135,6 @@ function parseOAuthReturn(): OAuthReturn | null {
   const params = new URLSearchParams(window.location.hash.slice(1));
   const platform = params.get('oauth');
 
-  // টিকিট যেন ব্রাউজারের ইতিহাসে না থাকে
-  window.history.replaceState(null, '', window.location.pathname + window.location.search);
-
   if (!platform) return null;
 
   const ticket = params.get('ticket') ?? undefined;
@@ -148,6 +145,15 @@ function parseOAuthReturn(): OAuthReturn | null {
     ticket: ticket && /^[A-Za-z0-9]{64}$/.test(ticket) ? ticket : undefined,
     error: error && /^[a-z_]{1,40}$/.test(error) ? error : undefined,
   };
+}
+
+/**
+ * URL থেকে # অংশ (টিকিট) মুছে ফেলা, যাতে ব্রাউজারের ইতিহাসে না থাকে।
+ * রেন্ডারের সময় না — useEffect-এর ভেতরে ডাকতে হবে (Next.js-এর Router এতে আপডেট হয়)।
+ */
+export function clearOAuthReturnFromUrl(): void {
+  if (typeof window === 'undefined' || !window.location.hash.includes('oauth=')) return;
+  window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
 }
 
 export const OAUTH_ERROR_MESSAGES: Record<string, string> = {

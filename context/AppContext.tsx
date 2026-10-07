@@ -31,6 +31,7 @@ import {
   socialApi,
   toAppAccount,
   readOAuthReturn,
+  clearOAuthReturnFromUrl,
   isTrustedGoogleAuthUrl,
   OAUTH_ERROR_MESSAGES,
 } from '../lib/social-accounts';
@@ -1075,6 +1076,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   if (oauthReturnRef.current === undefined) {
     oauthReturnRef.current = readOAuthReturn();
   }
+
+  // টিকিট পড়া হয়ে গেলে URL পরিষ্কার (রেন্ডারের পরে)
+  useEffect(() => {
+    clearOAuthReturnFromUrl();
+  }, []);
 
   useEffect(() => {
     if (authStatus === 'guest') {
