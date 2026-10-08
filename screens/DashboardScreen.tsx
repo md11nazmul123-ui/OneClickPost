@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { analyticsApi, formatCount, type AnalyticsSummary } from '../lib/analytics-api';
 import { useApp } from '../context/AppContext';
 import { PlatformIcon } from '../components/PlatformIcon';
 import { PlatformId } from '../types';
-import { Video, Users2, Calendar, Sparkles, ArrowRight, CheckCircle2, FileEdit, Plus, AlertCircle } from 'lucide-react';
+import { Video, Users2, Calendar, Sparkles, ArrowRight, CheckCircle2, FileEdit, Plus, AlertCircle, BarChart3, Eye, Heart, MessageCircle } from 'lucide-react';
 
 export const DashboardScreen: React.FC = () => {
   const { user, accounts, posts, drafts, navigateTo, t, theme } = useApp();
@@ -16,6 +17,21 @@ export const DashboardScreen: React.FC = () => {
   const connectedAccounts = accounts.filter((a) => a.connected);
   const recentPosts = posts.slice(0, 4);
   const firstName = (user.name || '').split(' ')[0];
+
+  // YouTube-এর আসল হিসাব (চ্যানেল কানেক্ট থাকলে)
+  const [stats, setStats] = useState<AnalyticsSummary | null>(null);
+  const hasYouTube = connectedAccounts.some((a) => a.platform === 'youtube');
+  useEffect(() => {
+    if (!hasYouTube) return;
+    let active = true;
+    analyticsApi
+      .get()
+      .then((summary) => active && setStats(summary))
+      .catch(() => undefined); // হিসাব না এলে কার্ডটা শুধু খালি থাকবে
+    return () => {
+      active = false;
+    };
+  }, [hasYouTube]);
 
   return (
     <div className="max-w-5xl lg:max-w-6xl mx-auto px-3.5 sm:px-6 py-4 sm:py-6 pb-28 space-y-6">
@@ -163,6 +179,44 @@ export const DashboardScreen: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* YouTube Stats */}
+      {hasYouTube && (
+        <div
+          onClick={() => navigateTo('analytics')}
+          className={`rounded-3xl p-5 sm:p-6 cursor-pointer transition-all ${
+            isSmooth
+              ? 'bg-white hover:bg-slate-50 border border-slate-200/90 shadow-[0_2px_12px_-2px_rgba(15,23,42,0.06)]'
+              : 'glass-card glass-card-hover'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-sm font-extrabold flex items-center gap-2 ${isSmooth ? 'text-slate-900' : 'text-white'}`}>
+              <BarChart3 className="w-4 h-4 text-blue-500" />
+              YouTube Stats
+            </h3>
+            <span className="text-xs font-bold text-blue-600 flex items-center gap-1">
+              View all <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="grid gap-2 text-center" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+            {[
+              { label: 'Subscribers', value: stats ? stats.channels.reduce((sum, c) => sum + (c.subscribers ?? 0), 0) : null, icon: Users2 },
+              { label: 'Views', value: stats?.totals.views ?? null, icon: Eye },
+              { label: 'Likes', value: stats?.totals.likes ?? null, icon: Heart },
+              { label: 'Comments', value: stats?.totals.comments ?? null, icon: MessageCircle },
+            ].map((item) => (
+              <div key={item.label}>
+                <item.icon className={`w-4 h-4 mx-auto mb-1 ${isSmooth ? 'text-slate-500' : 'text-slate-400'}`} />
+                <div className={`text-lg sm:text-2xl font-black ${isSmooth ? 'text-slate-950' : 'text-white'}`}>
+                  {formatCount(item.value)}
+                </div>
+                <div className={`text-[10px] font-semibold ${isSmooth ? 'text-slate-600' : 'text-slate-400'}`}>{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Connected Accounts Section */}
       <div className={`rounded-3xl p-5 sm:p-6 transition-all ${

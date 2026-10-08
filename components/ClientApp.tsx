@@ -38,6 +38,7 @@ import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { LanguageScreen } from '../screens/LanguageScreen';
 import { HelpSupportScreen } from '../screens/HelpSupportScreen';
 import { AboutScreen } from '../screens/AboutScreen';
+import { AnalyticsScreen } from '../screens/AnalyticsScreen';
 
 // এই অ্যাপটা মূলত একটা স্টেট-ড্রাইভেন SPA (URL রুট নয়, context-এ রাখা
 // `screen` state দিয়ে স্ক্রিন বদলায়) — তাই কনভার্সনে সেই একই প্যাটার্ন
@@ -118,6 +119,8 @@ const MainRouter: React.FC = () => {
         return <HelpSupportScreen />;
       case 'about':
         return <AboutScreen />;
+      case 'analytics':
+        return <AnalyticsScreen />;
       default:
         return <DashboardScreen />;
     }

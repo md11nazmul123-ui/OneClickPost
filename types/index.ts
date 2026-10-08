@@ -23,7 +23,8 @@ export type ScreenId =
   | 'notifications'
   | 'language'
   | 'help'
-  | 'about';
+  | 'about'
+  | 'analytics';
 
 export type LanguageCode = 'en' | 'bn';
 

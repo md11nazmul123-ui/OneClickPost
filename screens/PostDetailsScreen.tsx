@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { analyticsApi, formatCount, type AnalyticsPost } from '../lib/analytics-api';
 import { THUMB_PLACEHOLDER } from '../lib/placeholders';
 import { useApp } from '../context/AppContext';
 import { PlatformIcon } from '../components/PlatformIcon';
@@ -14,6 +15,9 @@ import {
   CheckCircle2,
   XCircle,
   ExternalLink,
+  Eye,
+  Heart,
+  MessageCircle,
 } from 'lucide-react';
 
 export const PostDetailsScreen: React.FC = () => {
@@ -25,6 +29,26 @@ export const PostDetailsScreen: React.FC = () => {
     goBack,
     t,
   } = useApp();
+
+  // এই ভিডিওর YouTube হিসাব (পাবলিশ হওয়া পোস্টে)
+  const [videoStats, setVideoStats] = useState<AnalyticsPost | null>(null);
+  const detailId = selectedPostDetail?.id ?? '';
+  const isServerPublished = selectedPostDetail?.status === 'published' && detailId.startsWith('post-');
+  useEffect(() => {
+    setVideoStats(null);
+    if (!isServerPublished) return;
+    let active = true;
+    const serverId = detailId.slice(5);
+    analyticsApi
+      .get()
+      .then((summary) => {
+        if (active) setVideoStats(summary.posts.find((p) => p.post_id === serverId) ?? null);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [detailId, isServerPublished]);
 
   if (!selectedPostDetail) {
     return (
@@ -187,6 +211,23 @@ export const PostDetailsScreen: React.FC = () => {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* YouTube Stats */}
+        {videoStats && (
+          <div className="grid grid-cols-3 gap-2.5">
+            {[
+              { label: 'Views', value: videoStats.views, icon: Eye },
+              { label: 'Likes', value: videoStats.likes, icon: Heart },
+              { label: 'Comments', value: videoStats.comments, icon: MessageCircle },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl p-3 bg-[#030e1d] border border-sky-950 text-center">
+                <item.icon className="w-4 h-4 mx-auto mb-1 text-slate-400" />
+                <div className="text-lg font-black text-white">{formatCount(item.value)}</div>
+                <div className="text-[10px] font-semibold text-slate-400">{item.label}</div>
+              </div>
+            ))}
           </div>
         )}
 
