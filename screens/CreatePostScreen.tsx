@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import { useMediaUpload } from '../context/MediaUploadContext';
 import { validateVideoFile } from '../lib/media-upload';
 import { PreviewPostModal } from '../components/PreviewPostModal';
-import { Upload, Sparkles, Hash, ArrowRight, ArrowLeft, Bookmark, Video, Film, Eye } from 'lucide-react';
+import { Upload, Sparkles, Hash, ArrowRight, ArrowLeft, Bookmark, Video, Film, Eye, Loader2, X } from 'lucide-react';
 
 export const CreatePostScreen: React.FC = () => {
   const {
@@ -24,6 +24,14 @@ export const CreatePostScreen: React.FC = () => {
     saveCurrentAsDraft,
     aiTone,
     setAiTone,
+    aiLanguage,
+    setAiLanguage,
+    aiBusy,
+    aiError,
+    clearAiError,
+    generateAICaption,
+    generateAIHashtags,
+    generateAITitle,
     selectedAccountIds,
     selectedPlatforms,
     platformSettings,
@@ -232,9 +240,16 @@ export const CreatePostScreen: React.FC = () => {
                 <Film className="w-3.5 h-3.5 text-cyan-400" />
                 <span>Broadcast / Video Title</span>
               </label>
-              <span className="text-[11px] font-mono text-slate-400">
-                Used for YouTube & AI Context
-              </span>
+              <button
+                type="button"
+                onClick={() => void generateAITitle()}
+                disabled={aiBusy !== null}
+                className="text-xs font-bold text-blue-600 flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Suggest a better title with AI"
+              >
+                {aiBusy === 'title' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                <span>{aiBusy === 'title' ? 'Writing…' : 'AI Title'}</span>
+              </button>
             </div>
             <input
               type="text"
@@ -290,16 +305,53 @@ export const CreatePostScreen: React.FC = () => {
               </div>
             </div>
 
+            {/* AI Language */}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-slate-400">AI Language:</span>
+              <div className="flex gap-1.5">
+                {([
+                  { id: 'en', label: 'English' },
+                  { id: 'bn', label: 'বাংলা' },
+                ] as const).map((lang) => (
+                  <button
+                    key={lang.id}
+                    type="button"
+                    onClick={() => setAiLanguage(lang.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      aiLanguage === lang.id
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500'
+                        : 'bg-[#051326] text-slate-400 border-sky-900/60 hover:text-slate-200'
+                    }`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Auto-Generate Caption Button */}
             <button
               type="button"
-              disabled
-              title="AI caption is coming soon"
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white font-bold text-xs shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2 transition-all cursor-not-allowed opacity-60"
+              onClick={() => void generateAICaption()}
+              disabled={aiBusy !== null}
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white font-bold text-xs shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Sparkles className="w-4 h-4 text-yellow-300" />
-              <span>Auto-Generate Caption with AI (coming soon)</span>
+              {aiBusy === 'caption' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 text-yellow-300" />
+              )}
+              <span>{aiBusy === 'caption' ? 'AI is writing…' : 'Auto-Generate Caption with AI'}</span>
             </button>
+
+            {aiError && (
+              <div className="flex items-start justify-between gap-2 text-xs font-semibold text-rose-500 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2">
+                <span>{aiError}</span>
+                <button type="button" onClick={clearAiError} className="shrink-0 cursor-pointer" title="Close">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Hashtags Box */}
@@ -312,12 +364,12 @@ export const CreatePostScreen: React.FC = () => {
 
               <button
                 type="button"
-                disabled
-                title="AI hashtags are coming soon"
-                className="text-xs font-bold text-purple-300 flex items-center gap-1 cursor-not-allowed opacity-60"
+                onClick={() => void generateAIHashtags()}
+                disabled={aiBusy !== null}
+                className="text-xs font-bold text-purple-300 flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{t('aiGenerateHashtags')} (soon)</span>
+                {aiBusy === 'hashtags' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                <span>{aiBusy === 'hashtags' ? 'Finding…' : t('aiGenerateHashtags')}</span>
               </button>
             </div>
 

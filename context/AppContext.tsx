@@ -19,6 +19,7 @@ import { INITIAL_USER, COMING_SOON_ACCOUNTS } from '../data/initialData';
 import { translations } from '../data/translations';
 import { useAuth } from './AuthContext';
 import { useMediaUpload } from './MediaUploadContext';
+import { generateWithAi, toAiTone, type AiFeature, type AiLanguage } from '../lib/ai-api';
 import {
   postsApi,
   FINAL_TARGET_STATUSES,
@@ -99,10 +100,16 @@ interface AppContextType {
 
   // AI Generation
   isGeneratingAI: boolean;
+  aiBusy: AiFeature | null;
+  aiError: string | null;
+  clearAiError: () => void;
   aiTone: string;
   setAiTone: (tone: string) => void;
+  aiLanguage: AiLanguage;
+  setAiLanguage: (language: AiLanguage) => void;
   generateAICaption: (toneOverride?: string) => Promise<void>;
   generateAIHashtags: () => Promise<void>;
+  generateAITitle: () => Promise<void>;
 
   // Upload & Publishing
   isUploading: boolean;
@@ -369,7 +376,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return `${String(d.getHours()).padStart(2, '0')}:00`;
   });
   const [aiTone, setAiTone] = useState<string>('viral');
-  const isGeneratingAI = false; // AI ধাপে আসল হবে
+  // AI কোন ভাষায় লিখবে — শুরুতে অ্যাপের ভাষা
+  const [aiLanguage, setAiLanguage] = useState<AiLanguage>(() => (language === 'bn' ? 'bn' : 'en'));
+  // AI কোন কাজ করছে (একসাথে একটাই), আর শেষ ভুলের বার্তা
+  const [aiBusy, setAiBusy] = useState<AiFeature | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const isGeneratingAI = aiBusy !== null;
+  const clearAiError = () => setAiError(null);
 
   // নতুন YouTube চ্যানেল কানেক্ট হলে পোস্টের জন্য নিজে থেকে বাছাই
   useEffect(() => {
@@ -472,12 +485,58 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSelectedPlatforms(['youtube']);
   };
 
-  // AI Caption & Hashtags — AI ধাপে আসল হবে (Gemini → Groq → Ollama)। এখন কিছু করে না।
-  const generateAICaption = async (_toneOverride?: string) => {
-    void _toneOverride;
+  // AI Caption / Hashtags / Title — সার্ভারে Gemini → Groq → Ollama
+  const aiBusyRef = useRef(false);
+
+  const runAi = async (feature: AiFeature, toneOverride?: string) => {
+    if (aiBusyRef.current) return null; // দুবার চাপলে একবারই
+    const title = (videoTitle || mediaUpload.media?.original_name?.replace(/\.[^.]+$/, '') || '').trim();
+    if (!title && !caption.trim()) {
+      setAiError('Write a title first, so AI knows what your video is about.');
+      return null;
+    }
+
+    aiBusyRef.current = true;
+    setAiBusy(feature);
+    setAiError(null);
+    try {
+      return await generateWithAi(feature, {
+        title,
+        caption,
+        tone: toAiTone(toneOverride ?? aiTone),
+        language: aiLanguage,
+      });
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : 'AI could not write this right now. Please try again.');
+      return null;
+    } finally {
+      aiBusyRef.current = false;
+      setAiBusy(null);
+    }
   };
 
-  const generateAIHashtags = async () => {};
+  const generateAICaption = async (toneOverride?: string) => {
+    const result = await runAi('caption', toneOverride);
+    if (result?.caption) setCaption(result.caption.slice(0, 2200));
+  };
+
+  const generateAITitle = async () => {
+    const result = await runAi('title');
+    if (result?.title) setVideoTitle(result.title.slice(0, 100));
+  };
+
+  const generateAIHashtags = async () => {
+    const result = await runAi('hashtags');
+    if (!result?.hashtags?.length) return;
+    // আগের ট্যাগ রেখে নতুনগুলো যোগ (একই ট্যাগ দুবার না, মোট ৩০টার মধ্যে)
+    const merged: string[] = [];
+    [...hashtags, ...result.hashtags].forEach((tag) => {
+      const clean = tag.startsWith('#') ? tag : `#${tag}`;
+      if (!merged.some((t) => t.toLowerCase() === clean.toLowerCase()) && merged.length < 30) merged.push(clean);
+    });
+    setHashtags(merged);
+    setCustomHashtags(merged.map((t) => t.replace(/^#/, '')).join(', '));
+  };
 
   // Upload & Publishing
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -1068,10 +1127,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setScheduledTime,
         resetPostForm,
         isGeneratingAI,
+        aiBusy,
+        aiError,
+        clearAiError,
         aiTone,
         setAiTone,
+        aiLanguage,
+        setAiLanguage,
         generateAICaption,
         generateAIHashtags,
+        generateAITitle,
         isUploading,
         uploadProgress,
         platformUploadStatus,
