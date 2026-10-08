@@ -199,6 +199,12 @@ export const RegisterScreen: React.FC = () => {
           </button>
         </form>
 
+        <p className="mt-3 text-center text-[11px] text-slate-500">
+          By creating an account you agree to our{' '}
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-700">Terms</a> and{' '}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-700">Privacy Policy</a>.
+        </p>
+
         <p className="mt-5 text-center text-xs text-slate-600">
           {text.haveAccount}{' '}
           <button

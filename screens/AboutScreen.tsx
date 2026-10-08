@@ -41,12 +41,12 @@ export const AboutScreen: React.FC = () => {
             {t('tagline')}
           </p>
           <span className="inline-block mt-2 text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-slate-300">
-            Version 1.0.0 (Production Release)
+            Version 1.0.0 (Beta)
           </span>
         </div>
 
         <p className="text-xs text-slate-300 leading-relaxed text-left bg-[#030d1d] p-4 rounded-2xl border border-sky-950">
-          OneClickPost eliminates creator friction. Upload your video once to automatically broadcast optimized titles, descriptions, and hashtags to YouTube, Facebook, Instagram, TikTok, and X simultaneously.
+          Upload your video once, write the title and caption (with AI help if you like), and publish or schedule it to your channels. YouTube works today — Facebook, Instagram and TikTok are coming soon.
         </p>
 
         {/* Platform Capabilities Overview */}
@@ -62,7 +62,7 @@ export const AboutScreen: React.FC = () => {
                 <span>Multi-Platform</span>
               </div>
               <p className="text-[11px] text-slate-400">
-                Simultaneous upload to 5+ global networks
+                YouTube now, more platforms soon
               </p>
             </div>
 
@@ -72,7 +72,7 @@ export const AboutScreen: React.FC = () => {
                 <span>AI Captions</span>
               </div>
               <p className="text-[11px] text-slate-400">
-                Platform-optimized titles & viral hashtags
+                Titles, captions & hashtags in English or Bangla
               </p>
             </div>
 
@@ -82,7 +82,7 @@ export const AboutScreen: React.FC = () => {
                 <span>Analytics Sync</span>
               </div>
               <p className="text-[11px] text-slate-400">
-                Audience demographics & viewer reports
+                Real views, likes & subscribers from YouTube
               </p>
             </div>
 
@@ -104,7 +104,13 @@ export const AboutScreen: React.FC = () => {
           <PlatformIcon platform="facebook" size="sm" />
           <PlatformIcon platform="instagram" size="sm" />
           <PlatformIcon platform="tiktok" size="sm" />
-          <PlatformIcon platform="x" size="sm" />
+        </div>
+
+        {/* Legal links */}
+        <div className="flex items-center justify-center gap-3 text-xs font-semibold">
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Privacy Policy</a>
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Terms of Service</a>
+          <a href="/data-deletion" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Data Deletion</a>
         </div>
       </div>
     </div>

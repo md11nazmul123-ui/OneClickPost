@@ -77,6 +77,11 @@ export const WelcomeScreen: React.FC = () => {
           <ShieldCheck className="w-4 h-4 text-blue-500" />
           <span>Official OAuth Security • Encrypted Tokens</span>
         </div>
+        <div className="mt-3 flex items-center justify-center gap-3 text-[11px] font-semibold text-slate-500">
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-blue-700">Privacy Policy</a>
+          <span>·</span>
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-blue-700">Terms of Service</a>
+        </div>
       </div>
     </div>
   );
