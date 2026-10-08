@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { scheduleTimeError } from '../lib/posts-api';
 import {
   ArrowLeft,
   Calendar as CalendarIcon,
@@ -50,6 +51,15 @@ export const ScheduleScreen: React.FC = () => {
       .filter((p) => p.status === 'scheduled' && p.scheduledDate)
       .map((p) => p.scheduledDate as string)
   );
+
+  // প্রতি ৩০ সেকেন্ডে "এখন" আপডেট — যাতে সময় পার হয়ে গেলে সাথে সাথে সতর্কবার্তা আসে
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const timeError = scheduleTimeError(scheduledDate, scheduledTime, now);
 
   const changeMonth = (delta: number) => {
     const next = new Date(currentYear, currentMonthIndex + delta, 1);
@@ -134,16 +144,20 @@ export const ScheduleScreen: React.FC = () => {
             const dateKey = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
             const isSelected = scheduledDate === dateKey;
             const hasEvent = scheduledDays.has(dateKey);
+            const isPast = dateKey < todayKey;
 
             return (
               <button
                 key={dayNum}
                 type="button"
                 onClick={() => handleDaySelect(dayNum)}
-                className={`min-h-[44px] rounded-xl flex flex-col items-center justify-center p-1 text-xs font-bold transition-all relative cursor-pointer border ${
-                  isSelected
+                disabled={isPast}
+                className={`min-h-[44px] rounded-xl flex flex-col items-center justify-center p-1 text-xs font-bold transition-all relative border ${
+                  isPast
+                    ? 'opacity-35 cursor-not-allowed bg-[#041224] text-slate-500 border-sky-950'
+                    : isSelected
                     ? 'bg-gradient-to-tr from-purple-600 to-cyan-500 text-white border-cyan-300 shadow-lg shadow-cyan-500/30'
-                    : 'bg-[#041224] text-slate-300 border-sky-950 hover:border-sky-700 hover:bg-[#071c36]'
+                    : 'cursor-pointer bg-[#041224] text-slate-300 border-sky-950 hover:border-sky-700 hover:bg-[#071c36]'
                 }`}
               >
                 <span>{dayNum}</span>
@@ -182,6 +196,11 @@ export const ScheduleScreen: React.FC = () => {
           </div>
         </div>
 
+        {timeError && (
+          <p className="text-xs font-semibold text-rose-500 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2">
+            {timeError}
+          </p>
+        )}
       </div>
 
       {/* Action Buttons: Schedule Post OR Publish Now */}
@@ -189,7 +208,8 @@ export const ScheduleScreen: React.FC = () => {
         <button
           type="button"
           onClick={schedulePostNow}
-          className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 group transition-all transform active:scale-[0.99] cursor-pointer"
+          disabled={!!timeError}
+          className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 group transition-all transform active:scale-[0.99] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <CalendarIcon className="w-5 h-5" />
           <span>{t('schedulePost')}</span>

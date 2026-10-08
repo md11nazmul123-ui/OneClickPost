@@ -29,7 +29,15 @@ export const PublishSuccessScreen: React.FC = () => {
   const results = platformUploadStatus;
   const resultKeys = Object.keys(results);
 
-  const hasFailed = resultKeys.some((k) => results[k]?.status === 'failed');
+  const isSchedule = lastPublishedPost?.publishType === 'schedule';
+  const allFailed = resultKeys.length > 0 && resultKeys.every((k) => results[k]?.status === 'failed');
+  const scheduledLabel = (() => {
+    if (!isSchedule || !lastPublishedPost?.scheduledDate || !lastPublishedPost.scheduledTime) return '';
+    const [y, m, d] = lastPublishedPost.scheduledDate.split('-').map(Number);
+    const [hh, mm] = lastPublishedPost.scheduledTime.split(':').map(Number);
+    const when = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0);
+    return Number.isNaN(when.getTime()) ? '' : when.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  })();
 
   const handleViewPost = () => {
     if (lastPublishedPost) {
@@ -45,10 +53,22 @@ export const PublishSuccessScreen: React.FC = () => {
       <div className="glass-card rounded-3xl p-6 sm:p-8 border border-sky-800/70 shadow-2xl text-center space-y-6">
         {/* Success Icon with Glow */}
         <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
-          <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl" />
-          <div className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 p-[3px] shadow-lg shadow-emerald-500/30 flex items-center justify-center">
+          <div className={`absolute inset-0 rounded-full blur-xl ${allFailed ? 'bg-rose-500/20' : 'bg-emerald-500/20'}`} />
+          <div
+            className={`relative w-20 h-20 rounded-full p-[3px] shadow-lg flex items-center justify-center ${
+              allFailed
+                ? 'bg-gradient-to-tr from-rose-600 to-rose-400 shadow-rose-500/30'
+                : 'bg-gradient-to-tr from-emerald-600 to-teal-400 shadow-emerald-500/30'
+            }`}
+          >
             <div className="w-full h-full bg-[#03131e] rounded-full flex items-center justify-center">
-              <Check className="w-10 h-10 text-emerald-400 stroke-[3]" />
+              {allFailed ? (
+                <XCircle className="w-10 h-10 text-rose-400" />
+              ) : isSchedule ? (
+                <Calendar className="w-10 h-10 text-emerald-400" />
+              ) : (
+                <Check className="w-10 h-10 text-emerald-400 stroke-[3]" />
+              )}
             </div>
           </div>
         </div>
@@ -56,12 +76,20 @@ export const PublishSuccessScreen: React.FC = () => {
         {/* Title & Tagline */}
         <div>
           <h2 className="text-2xl font-black text-white mb-1.5">
-            {lastPublishedPost?.publishType === 'schedule'
+            {allFailed
+              ? isSchedule
+                ? 'Could Not Schedule'
+                : 'Publishing Failed'
+              : isSchedule
               ? 'Scheduled Successfully!'
               : t('publishedSuccess')}
           </h2>
           <p className="text-xs sm:text-sm text-slate-300">
-            {t('publishedSuccessDesc')}
+            {allFailed
+              ? 'See the reason below, fix it and try again.'
+              : isSchedule
+              ? `Your video will be published automatically on ${scheduledLabel}. You can close the app.`
+              : t('publishedSuccessDesc')}
           </p>
         </div>
 
@@ -126,6 +154,7 @@ export const PublishSuccessScreen: React.FC = () => {
                         <span>{t('failed')}</span>
                       </span>
 
+                      {!isSchedule && (
                       <button
                         type="button"
                         onClick={() => retryPlatformUpload(key)}
@@ -135,12 +164,13 @@ export const PublishSuccessScreen: React.FC = () => {
                         <RotateCcw className="w-3 h-3" />
                         <span>Retry</span>
                       </button>
+                      )}
                     </div>
                   )}
 
                   {!isSuccess && !isFailed && (
                     <span className="text-xs text-cyan-400 font-medium">
-                      Queued
+                      {isSchedule ? 'Scheduled' : 'Queued'}
                     </span>
                   )}
                 </div>

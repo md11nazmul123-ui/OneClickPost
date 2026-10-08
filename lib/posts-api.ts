@@ -1,5 +1,5 @@
 /**
- * পোস্ট পাবলিশ — Next.js BFF (/api/backend/*) দিয়ে Laravel-এ।
+ * পোস্ট পাবলিশ / শিডিউল — Next.js BFF (/api/backend/*) দিয়ে Laravel-এ।
  * ভিডিও ব্রাউজার থেকে আবার যায় না; সার্ভারে আগে আপলোড হওয়া ফাইলটাই YouTube-এ পাঠানো হয়।
  */
 
@@ -29,6 +29,8 @@ export interface ServerPost {
   description: string | null;
   tags: string[];
   status: string;
+  scheduled_at: string | null;
+  timezone: string | null;
   created_at: string | null;
   published_at: string | null;
   targets: ServerPostTarget[];
@@ -42,6 +44,9 @@ export interface PublishInput {
   privacy: 'private' | 'unlisted' | 'public';
   made_for_kids: boolean;
   account_ids: string[];
+  /** দিলে পরে পাবলিশ (ISO সময়, UTC), না দিলে এখনই */
+  scheduled_at?: string;
+  timezone?: string;
 }
 
 export class PostApiError extends Error {
@@ -84,7 +89,38 @@ export const postsApi = {
     (await backend<{ post: ServerPost }>('posts', { method: 'POST', body: JSON.stringify(input) })).post,
 
   get: async (id: string) => (await backend<{ post: ServerPost }>(`posts/${encodeURIComponent(id)}`)).post,
+
+  list: async () => (await backend<{ items: ServerPost[] }>('posts')).items,
+
+  cancel: async (id: string) =>
+    (await backend<{ post: ServerPost }>(`posts/${encodeURIComponent(id)}/cancel`, { method: 'POST' })).post,
 };
+
+/** শিডিউলের জন্য কমপক্ষে কত মিনিট পরের সময় লাগবে (সার্ভারের নিয়মের সাথে মিল) */
+export const MIN_SCHEDULE_LEAD_MINUTES = 5;
+export const MAX_SCHEDULE_DAYS = 30;
+
+/** "2026-10-10" + "15:30" (ফোনের নিজের সময়) → Date; ভুল হলে null */
+export function localDateTime(date: string, time: string): Date | null {
+  const [y, m, d] = date.split('-').map(Number);
+  const [hh, mm] = time.split(':').map(Number);
+  if (!y || !m || !d || Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  const result = new Date(y, m - 1, d, hh, mm, 0, 0);
+  return Number.isNaN(result.getTime()) ? null : result;
+}
+
+/** শিডিউলের সময় ঠিক আছে কিনা; সমস্যা থাকলে বার্তা, ঠিক থাকলে null */
+export function scheduleTimeError(date: string, time: string, now: Date = new Date()): string | null {
+  const when = localDateTime(date, time);
+  if (!when) return 'Pick a valid date and time.';
+  if (when.getTime() < now.getTime() + MIN_SCHEDULE_LEAD_MINUTES * 60_000) {
+    return `Pick a time at least ${MIN_SCHEDULE_LEAD_MINUTES} minutes from now.`;
+  }
+  if (when.getTime() > now.getTime() + MAX_SCHEDULE_DAYS * 86_400_000) {
+    return `You can schedule up to ${MAX_SCHEDULE_DAYS} days ahead.`;
+  }
+  return null;
+}
 
 /** YouTube-এর নিয়মে title/description থেকে < > সরানো, সীমার মধ্যে রাখা */
 export function sanitizeForYouTube(text: string, max: number): string {

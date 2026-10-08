@@ -19,7 +19,16 @@ import { INITIAL_USER, COMING_SOON_ACCOUNTS } from '../data/initialData';
 import { translations } from '../data/translations';
 import { useAuth } from './AuthContext';
 import { useMediaUpload } from './MediaUploadContext';
-import { postsApi, FINAL_TARGET_STATUSES, sanitizeForYouTube, normalizeTags, sleep, type ServerPost } from '../lib/posts-api';
+import {
+  postsApi,
+  FINAL_TARGET_STATUSES,
+  sanitizeForYouTube,
+  normalizeTags,
+  sleep,
+  localDateTime,
+  scheduleTimeError,
+  type ServerPost,
+} from '../lib/posts-api';
 import {
   socialApi,
   toAppAccount,
@@ -492,8 +501,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return null;
     };
 
+    let scheduledAtIso: string | undefined;
     if (isScheduled) {
-      return failAll('Scheduling to YouTube is coming in the next update. Please use "Publish Now" for now.');
+      const timeError = scheduleTimeError(scheduledDate, scheduledTime);
+      if (timeError) return failAll(timeError);
+      scheduledAtIso = localDateTime(scheduledDate, scheduledTime)?.toISOString();
     }
     if (mediaUpload.status !== 'ready' || !mediaUpload.media) {
       return failAll('Upload your video first and wait for "✓ Uploaded", then publish.');
@@ -515,9 +527,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         privacy: 'private',
         made_for_kids: false,
         account_ids: accountIds,
+        scheduled_at: scheduledAtIso,
+        timezone: isScheduled ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined,
       });
     } catch (error) {
       return failAll(error instanceof Error ? error.message : 'Could not start publishing.');
+    }
+
+    // শিডিউল হলে এখানেই শেষ — সময় হলে সার্ভার নিজেই পাবলিশ করবে
+    if (isScheduled) {
+      post.targets.forEach((t) => {
+        if (!t.social_account_id || !accountIds.includes(t.social_account_id)) return;
+        onUpdate(t.social_account_id, { status: 'pending', progress: 100, error: undefined });
+      });
+      return post.id;
     }
 
     // শেষ না হওয়া পর্যন্ত অবস্থা দেখা (নেটওয়ার্ক সমস্যায় কয়েকবার ছাড় দেওয়া)
@@ -619,7 +642,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const resultValues = Object.values(results);
     const publishedCount = resultValues.filter((r) => r.status === 'published').length;
     const failedCount = resultValues.filter((r) => r.status === 'failed').length;
-    const allFailed = resultValues.length > 0 && publishedCount === 0;
+    // শিডিউলে সফল মানে "pending" (অপেক্ষায়), পাবলিশে "published"
+    const okCount = resultValues.length - failedCount;
+    const allFailed = resultValues.length > 0 && okCount === 0;
+    const scheduledLabel = (() => {
+      const when = localDateTime(scheduledDate, scheduledTime);
+      return when ? when.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : `${scheduledDate} ${scheduledTime}`;
+    })();
 
     const newPost: PostItem = {
       // সার্ভারের ID থাকলে সেটাই (একই ID দুবার হবে না), নইলে এলোমেলো
@@ -651,12 +680,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       type: allFailed ? 'upload_failed' : isScheduled ? 'schedule_reminder' : 'publish_success',
       title: allFailed
-        ? 'Publishing Failed'
+        ? isScheduled
+          ? 'Scheduling Failed'
+          : 'Publishing Failed'
+        : isScheduled
+        ? 'Post Scheduled'
         : failedCount > 0
         ? 'Published with some errors'
         : 'Published Successfully!',
       message: allFailed
-        ? resultValues[0]?.error || 'The video could not be published.'
+        ? resultValues[0]?.error || (isScheduled ? 'The post could not be scheduled.' : 'The video could not be published.')
+        : isScheduled
+        ? `Will publish to ${okCount} channel${okCount === 1 ? '' : 's'} on ${scheduledLabel}.`
         : `Published to ${publishedCount} of ${resultValues.length} channels.`,
       time: new Date().toLocaleString(),
       isRead: false,
@@ -700,12 +735,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [selectedPostDetail, setSelectedPostDetail] = useState<PostItem | null>(null);
 
-  const deletePost = (id: string) => {
+  const removePostLocally = (id: string) => {
     setPosts((prev) => prev.filter((p) => p.id !== id));
     if (selectedPostDetail?.id === id) {
       setSelectedPostDetail(null);
       goBack();
     }
+  };
+
+  // শিডিউল করা পোস্ট মুছলে সার্ভারেও বাতিল হয় (না হলে সময়মতো পাবলিশ হয়ে যেত)
+  const deletePost = (id: string) => {
+    const post = posts.find((p) => p.id === id);
+    const serverId = post && post.status === 'scheduled' && id.startsWith('post-') ? id.slice(5) : null;
+
+    if (!serverId) {
+      removePostLocally(id);
+      return;
+    }
+
+    void postsApi
+      .cancel(serverId)
+      .then(() => removePostLocally(id))
+      .catch((error: unknown) => {
+        const status = (error as { status?: number })?.status;
+        if (status === 404) {
+          removePostLocally(id); // সার্ভারে আর নেই
+          return;
+        }
+        window.alert(
+          error instanceof Error ? error.message : 'Could not cancel this post. Please try again.'
+        );
+      });
   };
 
   const retryPost = (id: string) => {
@@ -807,6 +867,103 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // লগইন হলে আসল অ্যাকাউন্ট লোড; Google থেকে ফিরে এলে কানেকশন শেষ করা
   const { status: authStatus } = useAuth();
+
+  // শিডিউল করা পোস্ট সার্ভারে পাবলিশ হলো কিনা — অ্যাপ খুললে আর প্রতি ১ মিনিটে দেখা
+  const postsRef = useRef(posts);
+  useEffect(() => {
+    postsRef.current = posts;
+  }, [posts]);
+  const hasPendingServerPosts = posts.some(
+    (p) => (p.status === 'scheduled' || p.status === 'uploading') && p.id.startsWith('post-')
+  );
+
+  useEffect(() => {
+    if (authStatus !== 'authenticated' || !hasPendingServerPosts) return;
+
+    let stopped = false;
+
+    const sync = async () => {
+      let serverPosts: ServerPost[];
+      try {
+        serverPosts = await postsApi.list();
+      } catch {
+        return; // নেটওয়ার্ক সমস্যা — পরের বার আবার
+      }
+      if (stopped) return;
+
+      const byId = new Map(serverPosts.map((sp) => [`post-${sp.id}`, sp]));
+      const newlyDone: { post: PostItem; ok: boolean }[] = [];
+      const updates = new Map<string, PostItem | null>(); // null = মুছে ফেলা (বাতিল হয়েছে)
+
+      postsRef.current.forEach((p) => {
+        const sp = byId.get(p.id);
+        if (!sp || (p.status !== 'scheduled' && p.status !== 'uploading')) return;
+
+        if (sp.status === 'cancelled') {
+          updates.set(p.id, null);
+          return;
+        }
+
+        const status: PostItem['status'] =
+          sp.status === 'published' || sp.status === 'partially_failed'
+            ? 'published'
+            : sp.status === 'failed'
+            ? 'failed'
+            : p.status;
+        if (status === p.status) return;
+
+        const platformResults = { ...p.platformResults };
+        sp.targets.forEach((t) => {
+          if (!t.social_account_id) return;
+          platformResults[t.social_account_id] = {
+            ...(platformResults[t.social_account_id] || {}),
+            status: t.status === 'published' ? 'published' : t.status === 'failed' || t.status === 'cancelled' ? 'failed' : 'pending',
+            progress: 100,
+            url: t.url ?? undefined,
+            error: t.error ?? undefined,
+          };
+        });
+
+        const updated: PostItem = { ...p, status, platformResults, updatedAt: new Date().toISOString() };
+        updates.set(p.id, updated);
+        newlyDone.push({ post: updated, ok: status === 'published' });
+      });
+
+      if (updates.size === 0) return;
+
+      setPosts((prev) =>
+        prev.flatMap((p) => {
+          if (!updates.has(p.id)) return [p];
+          const u = updates.get(p.id);
+          return u ? [u] : [];
+        })
+      );
+
+      if (newlyDone.length > 0) {
+        setNotifications((prev) => [
+          ...newlyDone.map(({ post, ok }) => ({
+            id: `notif-${post.id}-${ok ? 'done' : 'failed'}`,
+            type: (ok ? 'publish_success' : 'upload_failed') as NotificationItem['type'],
+            title: ok ? 'Scheduled Post Published' : 'Scheduled Post Failed',
+            message: ok
+              ? `"${post.title}" is now on YouTube.`
+              : Object.values(post.platformResults).find((r) => r?.error)?.error || `"${post.title}" could not be published.`,
+            time: new Date().toLocaleString(),
+            isRead: false,
+            postId: post.id,
+          })),
+          ...prev.filter((n) => !newlyDone.some(({ post }) => n.id.startsWith(`notif-${post.id}-`))),
+        ]);
+      }
+    };
+
+    void sync();
+    const timer = window.setInterval(() => void sync(), 60_000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [authStatus, hasPendingServerPosts]);
   const oauthReturnRef = useRef<ReturnType<typeof readOAuthReturn> | undefined>(undefined);
   if (oauthReturnRef.current === undefined) {
     oauthReturnRef.current = readOAuthReturn();

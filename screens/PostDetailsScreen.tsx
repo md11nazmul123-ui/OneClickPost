@@ -41,6 +41,15 @@ export const PostDetailsScreen: React.FC = () => {
   }
 
   const post = selectedPostDetail;
+  const isScheduled = post.status === 'scheduled';
+
+  // শিডিউল করা পোস্ট মুছলে সার্ভারেও বাতিল হয় — তাই আগে নিশ্চিত হওয়া
+  const handleDelete = () => {
+    const question = isScheduled
+      ? 'Cancel this scheduled post? It will not be published.'
+      : 'Remove this post from the list? (It stays on YouTube.)';
+    if (window.confirm(question)) deletePost(post.id);
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-28 space-y-6">
@@ -65,9 +74,9 @@ export const PostDetailsScreen: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => deletePost(post.id)}
+          onClick={handleDelete}
           className="p-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/40 border border-rose-800 text-rose-300 transition-colors cursor-pointer"
-          title="Delete Post"
+          title={isScheduled ? 'Cancel scheduled post' : 'Delete Post'}
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -172,7 +181,7 @@ export const PostDetailsScreen: React.FC = () => {
                         <XCircle className="w-3.5 h-3.5" /> Failed
                       </span>
                     ) : (
-                      <span className="text-cyan-400">In queue</span>
+                      <span className="text-cyan-400">{isScheduled ? 'Scheduled' : 'In queue'}</span>
                     )}
                   </div>
                 );
@@ -183,6 +192,7 @@ export const PostDetailsScreen: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="pt-2 flex flex-wrap gap-2.5">
+          {!isScheduled && (
           <button
             type="button"
             onClick={() => retryPost(post.id)}
@@ -191,16 +201,15 @@ export const PostDetailsScreen: React.FC = () => {
             <RotateCcw className="w-4 h-4" />
             <span>{t('retryUpload')}</span>
           </button>
+          )}
 
           <button
             type="button"
-            onClick={() => {
-              deletePost(post.id);
-            }}
+            onClick={handleDelete}
             className="py-3 px-4 rounded-xl bg-rose-950/40 hover:bg-rose-900/40 border border-rose-800 text-rose-300 font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
-            <span>Delete</span>
+            <span>{isScheduled ? 'Cancel schedule' : 'Delete'}</span>
           </button>
         </div>
       </div>
